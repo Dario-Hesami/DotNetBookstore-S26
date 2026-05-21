@@ -12,6 +12,9 @@
     @* This foreach loop iterates over the list of categories passed to the view and generates a list item for each category. *@
     @foreach (var category in Model)
     {
+        @* Tag Helpers: asp-controller, asp-action, asp-route-category
+        asp-controller specifies the controller to use, asp-action specifies the action method to call, and asp-route-category specifies the route parameter to pass to the action method.
+        Tag Helpers like asp-controller, asp-action, and asp-route-* generate URLs dynamically in HTML elements. *@    
         <li><a asp-controller="Categories" asp-action="Browse" asp-route-category="@category.Name">@category.Name</a></li>
     }
 
