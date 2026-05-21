@@ -1,6 +1,8 @@
-﻿@*
-    For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
-*@
+﻿@* This is the view for browsing a specific category. *@
+
 @{
+    ViewData["Title"] = $"Browsing {ViewBag.Category}";
 }
-<h1>You are browsing @ViewBag.Category</h1>
+<h1>Browsing @ViewBag.Category</h1>
+
+@* You can add additional content for the category browsing page here. *@   
