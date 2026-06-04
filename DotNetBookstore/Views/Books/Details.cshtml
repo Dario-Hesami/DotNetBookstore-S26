@@ -10,67 +10,50 @@
     <h4>Book</h4>
     <hr />
     <dl class="row">
-        <dt class = "col-sm-2">
+        <dt class="col-sm-2">
             @Html.DisplayNameFor(model => model.Author)
         </dt>
-        <dd class = "col-sm-10">
+        <dd class="col-sm-10">
             @Html.DisplayFor(model => model.Author)
         </dd>
-    </dl>
-        <dt class = "col-sm-2">
+        <dt class="col-sm-2">
             @Html.DisplayNameFor(model => model.Title)
         </dt>
-        <dd class = "col-sm-10">
+        <dd class="col-sm-10">
             @Html.DisplayFor(model => model.Title)
         </dd>
-    </dl>
-        <dt class = "col-sm-2">
+        <dt class="col-sm-2">
             @Html.DisplayNameFor(model => model.Image)
         </dt>
-        <dd class = "col-sm-10">
+        <dd class="col-sm-10">
             @Html.DisplayFor(model => model.Image)
         </dd>
-    </dl>
-        <dt class = "col-sm-2">
+        <dt class="col-sm-2">
             @Html.DisplayNameFor(model => model.Price)
         </dt>
-        <dd class = "col-sm-10">
+        <dd class="col-sm-10">
             @Html.DisplayFor(model => model.Price)
         </dd>
-    </dl>
-        <dt class = "col-sm-2">
+        <dt class="col-sm-2">
             @Html.DisplayNameFor(model => model.MatureContent)
         </dt>
-        <dd class = "col-sm-10">
+        <dd class="col-sm-10">
             @Html.DisplayFor(model => model.MatureContent)
         </dd>
-    </dl>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.CategoryId)
+        @*
+            FIX AFTER SCAFFOLDING (Step 3): Replace the raw CategoryId row (which showed a meaningless
+            integer FK number) with a Category Name row that reads from the Category navigation property.
+            This works because the Details GET action now calls .Include(b => b.Category) to eagerly
+            load the related Category object via EF Core.
+            The Category (object), CartItems, and OrderDetails rows are removed entirely —
+            Category is an EF-managed object reference, and CartItems/OrderDetails are reverse
+            navigation collections. None of them are meaningful to display in a details view.
+        *@
+        <dt class="col-sm-2">
+            Category Name
         </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.CategoryId)
-        </dd>
-    </dl>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Category)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Category)
-        </dd>
-    </dl>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.CartItems)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.CartItems)
-        </dd>
-    </dl>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.OrderDetails)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.OrderDetails)
+        <dd class="col-sm-10">
+            @Html.DisplayFor(model => model.Category.Name)
         </dd>
     </dl>
 </div>

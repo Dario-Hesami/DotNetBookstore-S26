@@ -38,26 +38,22 @@
                 <input asp-for="MatureContent" class="form-check-input" />
                 <span asp-validation-for="MatureContent" class="text-danger"></span>
             </div>
+            @*
+                FIX AFTER SCAFFOLDING (Step 3): Same replacement as Create — the scaffolder's plain
+                CategoryId textbox is replaced by a <select> dropdown populated from ViewBag.CategoryId.
+                The Edit GET action passes a SelectList with the 4th argument set to book.CategoryId
+                so the dropdown opens with the book's current category already pre-selected.
+                The Category, CartItems, and OrderDetails <input> groups are removed entirely —
+                they are EF-managed navigation/collection properties, not user-entered fields.
+            *@
             <div class="form-group">
                 <label asp-for="CategoryId" class="control-label"></label>
-                <input asp-for="CategoryId" class="form-control" />
+                <select asp-for="CategoryId" asp-items="ViewBag.CategoryId" class="form-control">
+                    <option value="">-- Select a Category --</option>
+                </select>
                 <span asp-validation-for="CategoryId" class="text-danger"></span>
             </div>
-            <div class="form-group">
-                <label asp-for="Category" class="control-label"></label>
-                <input asp-for="Category" class="form-control" />
-                <span asp-validation-for="Category" class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <label asp-for="CartItems" class="control-label"></label>
-                <input asp-for="CartItems" class="form-control" />
-                <span asp-validation-for="CartItems" class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <label asp-for="OrderDetails" class="control-label"></label>
-                <input asp-for="OrderDetails" class="form-control" />
-                <span asp-validation-for="OrderDetails" class="text-danger"></span>
-            </div>
+
             <div class="form-group">
                 <input type="submit" value="Save" class="btn btn-primary" />
             </div>
@@ -70,5 +66,7 @@
 </div>
 
 @section Scripts {
-    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
 }

@@ -7,7 +7,7 @@
 <h1>Index</h1>
 
 <p>
-    <a asp-action="Create">Create New</a>
+    <a asp-action="Create">Create New Book</a>
 </p>
 <table class="table">
     <thead>
@@ -27,57 +27,56 @@
             <th>
                 @Html.DisplayNameFor(model => model.MatureContent)
             </th>
+            @*
+                FIX AFTER SCAFFOLDING (Step 3): Replace the raw CategoryId column (a meaningless
+                integer FK number) and the Category navigation-property column with a single
+                "Category Name" column that shows the human-readable category name.
+                CartItems and OrderDetails are reverse navigation collections — they represent
+                other tables' rows that reference this book and have no meaning as list columns.
+                All four scaffolded columns are removed and replaced by this one.
+            *@
             <th>
-                @Html.DisplayNameFor(model => model.CategoryId)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.Category)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.CartItems)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.OrderDetails)
+                Category Name
             </th>
             <th></th>
         </tr>
     </thead>
     <tbody>
-@foreach (var item in Model) {
-        <tr>
-            <td>
-                @Html.DisplayFor(model => item.Author)
-            </td>
-            <td>
-                @Html.DisplayFor(model => item.Title)
-            </td>
-            <td>
-                @Html.DisplayFor(model => item.Image)
-            </td>
-            <td>
-                @Html.DisplayFor(model => item.Price)
-            </td>
-            <td>
-                @Html.DisplayFor(model => item.MatureContent)
-            </td>
-            <td>
-                @Html.DisplayFor(model => item.CategoryId)
-            </td>
-            <td>
-                @Html.DisplayFor(model => item.Category)
-            </td>
-            <td>
-                @Html.DisplayFor(model => item.CartItems)
-            </td>
-            <td>
-                @Html.DisplayFor(model => item.OrderDetails)
-            </td>
-            <td>
-                <a asp-action="Edit" asp-route-id="@item.BookId">Edit</a> |
-                <a asp-action="Details" asp-route-id="@item.BookId">Details</a> |
-                <a asp-action="Delete" asp-route-id="@item.BookId">Delete</a>
-            </td>
-        </tr>
-}
+        @foreach (var item in Model)
+        {
+            <tr>
+                <td>
+                    @Html.DisplayFor(model => item.Author)
+                </td>
+                <td>
+                    @Html.DisplayFor(model => item.Title)
+                </td>
+                <td>
+                    @Html.DisplayFor(model => item.Image)
+                </td>
+                <td>
+                    @Html.DisplayFor(model => item.Price)
+                </td>
+                <td>
+                    @Html.DisplayFor(model => item.MatureContent)
+                </td>
+                @*
+                FIX AFTER SCAFFOLDING (Step 3): Display the category name via the Category navigation
+                property (item.Category.Name) instead of the raw FK integer (item.CategoryId).
+                This works because the controller's Index action now uses .Include(b => b.Category)
+                to eagerly load the related Category row for every Book in the query.
+                The CartItems and OrderDetails cells are removed entirely — they are reverse
+                navigation collections that belong to other tables and are meaningless here.
+            *@
+                <td>
+                    @Html.DisplayFor(model => item.Category.Name)
+                </td>
+                <td>
+                    <a asp-action="Edit" asp-route-id="@item.BookId">Edit</a> |
+                    <a asp-action="Details" asp-route-id="@item.BookId">Details</a> |
+                    <a asp-action="Delete" asp-route-id="@item.BookId">Delete</a>
+                </td>
+            </tr>
+        }
     </tbody>
 </table>

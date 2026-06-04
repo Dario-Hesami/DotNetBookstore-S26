@@ -1,12 +1,12 @@
 @model DotNetBookstore.Models.Book
 
 @{
-    ViewData["Title"] = "Create";
+    ViewData["Title"] = "Add New Book";
 }
 
-<h1>Create</h1>
+<h1>Add New Book</h1>
 
-<h4>Book</h4>
+@* <h4>Book</h4> *@
 <hr />
 <div class="row">
     <div class="col-md-4">
@@ -43,29 +43,25 @@
                 <span asp-validation-for="MatureContent" class="text-danger"></span>
             </div>
 
+            @*
+                FIX AFTER SCAFFOLDING (Step 3): The scaffolder generated a plain <input> textbox
+                for CategoryId because it only knows it is a required integer field. A user cannot
+                be expected to type a raw database ID. We replace it with a <select> dropdown fed
+                by ViewBag.CategoryId (a SelectList built in the Create GET action in the controller).
+                asp-for="CategoryId" binds the selected value back to Book.CategoryId on POST.
+                asp-items="ViewBag.CategoryId" populates the <option> list from the SelectList.
+                The placeholder option ("-- Select a Category --") forces the user to make a choice.
+                The Category, CartItems, and OrderDetails <input> groups are removed entirely —
+                those are navigation/collection properties managed by EF, never entered by the user.
+            *@
             <div class="form-group">
                 <label asp-for="CategoryId" class="control-label"></label>
-                <input asp-for="CategoryId" class="form-control" />
+                <select asp-for="CategoryId" asp-items="ViewBag.CategoryId" class="form-control">
+                    <option value="">-- Select a Category --</option>
+                </select>
                 <span asp-validation-for="CategoryId" class="text-danger"></span>
             </div>
 
-            <div class="form-group">
-                <label asp-for="Category" class="control-label"></label>
-                <input asp-for="Category" class="form-control" />
-                <span asp-validation-for="Category" class="text-danger"></span>
-            </div>
-
-            <div class="form-group">
-                <label asp-for="CartItems" class="control-label"></label>
-                <input asp-for="CartItems" class="form-control" />
-                <span asp-validation-for="CartItems" class="text-danger"></span>
-            </div>
-
-            <div class="form-group">
-                <label asp-for="OrderDetails" class="control-label"></label>
-                <input asp-for="OrderDetails" class="form-control" />
-                <span asp-validation-for="OrderDetails" class="text-danger"></span>
-            </div>
             <div class="form-group">
                 <input type="submit" value="Create" class="btn btn-primary" />
             </div>
@@ -76,3 +72,9 @@
 <div>
     <a asp-action="Index">Back to List</a>
 </div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+}
