@@ -3,7 +3,23 @@
 @{
     ViewData["Title"] = "Privacy Policy";
 }
-<h1>@ViewData["Title"]</h1>
-<p>Use this page to detail your site's privacy policy. </p>
+
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card shadow-sm border-0 mt-2">
+            <div class="card-header bg-dark text-white">
+                <h4 class="mb-0"><i class="bi bi-shield-lock me-2"></i>@ViewData["Title"]</h4>
+            </div>
+            <div class="card-body p-4">
+                <p class="text-muted">Use this page to detail your site's privacy policy.</p>
+            </div>
+        </div>
+        <div class="mt-3">
+            <a asp-controller="Home" asp-action="Index" class="btn btn-outline-secondary btn-sm">
+                <i class="bi bi-arrow-left me-1"></i>Back to Home
+            </a>
+        </div>
+    </div>
+</div>
 
 @* You can add additional content on the privacy policy page. *@

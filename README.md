@@ -1,96 +1,232 @@
-# DotNetBookstore
+# 📚 DotNet Bookstore
 
-DotNetBookstore is a .NET 10 ASP.NET Core web application for a simple bookstore learning project. It uses MVC controllers and views for the main site experience, with Razor Pages provided through ASP.NET Core Identity for authentication-related pages.
+A full-featured ASP.NET Core MVC web application for managing an online bookstore catalogue. Built as part of the **COMP2084** course at **Georgian College** (Summer 2026).
 
-## Table of Contents
+[![.NET](https://img.shields.io/badge/.NET-10.0-512BD4?logo=dotnet)](https://dotnet.microsoft.com/)
+[![Bootstrap](https://img.shields.io/badge/Bootstrap-5-7952B3?logo=bootstrap)](https://getbootstrap.com/)
+[![EF Core](https://img.shields.io/badge/EF%20Core-10.0-brightgreen)](https://docs.microsoft.com/en-us/ef/core/)
+[![SQL Server](https://img.shields.io/badge/SQL%20Server-Azure-CC2927?logo=microsoftsqlserver)](https://azure.microsoft.com/en-us/products/azure-sql/)
+
+---
+
+## 🌐 Live Repository
+
+[https://github.com/Dario-Hesami/DotNetBookstore-S26](https://github.com/Dario-Hesami/DotNetBookstore-S26)
+
+---
+
+## 📋 Table of Contents
 
 - [Overview](#overview)
+- [Technology Stack](#technology-stack)
 - [Features](#features)
-- [Tech Stack](#tech-stack)
+- [UI/UX Design](#uiux-design)
+- [Data Models](#data-models)
 - [Project Structure](#project-structure)
 - [Getting Started](#getting-started)
+- [Database Setup](#database-setup)
 - [Configuration](#configuration)
-- [Available Pages and Routes](#available-pages-and-routes)
-- [Database](#database)
-- [Development Notes](#development-notes)
-- [License](#license)
+- [Available Routes](#available-routes)
+- [Documentation](#documentation)
+- [UI Enhancement History](#ui-enhancement-history)
+
+---
 
 ## Overview
 
-This repository contains a bookstore sample application built with ASP.NET Core. The current implementation focuses on:
+DotNet Bookstore is an ASP.NET Core MVC CRUD application that manages a bookstore's catalogue of books and categories. It uses Entity Framework Core with SQL Server (Azure) for data persistence, ASP.NET Core Identity for authentication, and Bootstrap 5 for a polished, responsive UI.
 
-- a home page,
-- a categories listing page,
-- a category browsing page, and
-- built-in ASP.NET Core Identity infrastructure.
+The project demonstrates real-world patterns including:
 
-The project appears to be intended for learning and coursework use, including ASP.NET Core MVC concepts such as controllers, views, routing, dependency injection, Entity Framework Core, and Identity.
+- One-to-many relational data (Category → Books)
+- EF Core eager loading with `.Include()`
+- Scaffolded CRUD controllers with post-scaffolding fixes
+- ASP.NET Core Identity (registration, login, logout)
+- Bootstrap 5 responsive layout with Bootstrap Icons
+
+---
+
+## Technology Stack
+
+| Layer | Technology |
+|---|---|
+| Framework | ASP.NET Core MVC (.NET 10) |
+| Language | C# 14 |
+| ORM | Entity Framework Core 10 |
+| Database | SQL Server (Azure SQL Database) |
+| Authentication | ASP.NET Core Identity |
+| Frontend | Bootstrap 5, Bootstrap Icons 1.11.3, jQuery |
+| IDE | Visual Studio Enterprise 2026 |
+
+---
 
 ## Features
 
-- ASP.NET Core web application targeting **.NET 10**
-- MVC controller and view pattern for the main application flow
-- Razor Pages support for Identity UI
-- Entity Framework Core with SQL Server provider
-- Default ASP.NET Core Identity integration
-- Category listing and category browsing pages
-- Static asset support for CSS, JavaScript, Bootstrap, and jQuery
+### Books Management
+- **List** all books in a hover-table with cover image thumbnails, coloured Mature Content badges, category badges, and icon action buttons
+- **Create** a new book with author, title, image URL, price, mature content toggle, and category dropdown
+- **Edit** an existing book — category dropdown pre-selects the current value
+- **View Details** — card layout with cover image, all fields, and colour-coded badges
+- **Delete** — danger-themed confirmation card with full book summary
 
-## Tech Stack
+### Categories Management
+- **List** all categories in a clean hover-table
+- **Create**, **Edit**, **View Details**, and **Delete** categories with consistent card-wrapped forms and danger confirmation flow
 
-- **Framework:** ASP.NET Core 10
-- **Runtime Target:** .NET 10 (`net10.0`)
-- **UI Pattern:** MVC with Razor Views, plus Razor Pages for Identity
-- **Data Access:** Entity Framework Core 10
-- **Database Provider:** SQL Server / LocalDB
-- **Authentication:** ASP.NET Core Identity
-- **Frontend Libraries:** Bootstrap, jQuery, jQuery Validation
+### Authentication
+- User registration and login via ASP.NET Core Identity
+- Email confirmation required (`RequireConfirmedAccount = true`)
+- Navbar displays logged-in username with manage and logout links
+
+---
+
+## UI/UX Design
+
+The entire frontend was built and enhanced using **Bootstrap 5** with **Bootstrap Icons 1.11.3** (loaded via CDN). A consistent design language is applied across all 14 views.
+
+### Global Layout (`_Layout.cshtml`)
+- **Dark navbar** (`bg-dark`) with Bootstrap Icons in all nav links and the brand logo
+- Sticky **flex footer** (`bg-dark`) with Privacy and GitHub source links
+- `min-vh-100` flex-column body keeps the footer at the bottom on short pages
+
+### Home Page
+- **Hero section** — dark jumbotron with a large book icon, headline, description, and two CTA buttons (Browse Books / View Categories)
+- **Feature cards** — three equal-height cards for Discover Books, Browse Categories, and Manage Your Account
+
+### Books Views
+
+| View | Enhancement |
+|---|---|
+| `Index` | `table-dark` header, `table-hover`, cover `<img>` thumbnail, colour badge for Mature Content, category badge, icon-only action buttons, empty-state message |
+| `Create` / `Edit` | Centred card form, `input-group` with Bootstrap Icons, `form-switch` for Mature Content, Bootstrap 5 `mb-3` spacing, Save/Cancel buttons |
+| `Details` | Card with cover image at top, `dl` info grid, colour-coded badges for Mature Content and Category |
+| `Delete` | Danger-bordered card, `alert-danger` warning banner, full book summary, Yes/Cancel buttons |
+
+### Categories Views
+
+| View | Enhancement |
+|---|---|
+| `Index` | Dark table header, `table-hover`, icon-only action buttons, empty-state message |
+| `Create` / `Edit` | Centred card form with tag icon input-group |
+| `Details` | Card with dark header showing category name |
+| `Delete` | Danger-bordered card with `alert-danger` warning, confirm/cancel buttons |
+
+### Shared
+- **Error page** — large danger icon, styled `alert-secondary` for Request ID, `card` for dev-mode info, Return Home button
+- **Privacy page** — card with dark header, back navigation link
+- **Login Partial** — Bootstrap Icons on all auth links (Register, Login, Logout, Manage)
+
+---
+
+## Data Models
+
+```
+Category
+├── CategoryId (PK)
+└── Name (required)
+
+Book
+├── BookId (PK)
+├── Author (required, max 100)
+├── Title (required, max 200)
+├── Image (nullable URL string)
+├── Price (required, 0.01–10000)
+├── MatureContent (bool)
+├── CategoryId (FK → Category)
+└── Category (navigation property)
+
+CartItem
+├── CartItemId (PK)
+├── Quantity (required, 1–1000)
+├── Price (required)
+├── BookId (FK → Book)
+└── UserId (FK → IdentityUser)
+
+Order
+├── OrderId (PK)
+├── OrderDate / OrderTotal
+├── FirstName / LastName / Address
+├── City / Province / PostalCode
+├── Phone / Email
+└── UserId (FK → IdentityUser)
+
+OrderDetail
+├── OrderDetailId (PK)
+├── Quantity / Price
+├── BookId (FK → Book)
+└── OrderId (FK → Order)
+```
+
+---
 
 ## Project Structure
 
-```text
-DotNetBookstore/
-├── README.md
-└── DotNetBookstore/
-	├── Areas/
-	│   └── Identity/
-	├── Controllers/
-	│   ├── CategoriesController.cs
-	│   └── HomeController.cs
-	├── Data/
-	│   ├── ApplicationDbContext.cs
-	│   └── Migrations/
-	├── Models/
-	│   ├── Category.cs
-	│   └── ErrorViewModel.cs
-	├── Properties/
-	│   └── launchSettings.json
-	├── Views/
-	│   ├── Categories/
-	│   ├── Home/
-	│   └── Shared/
-	├── wwwroot/
-	├── appsettings.json
-	├── appsettings.Development.json
-	├── DotNetBookstore.csproj
-	└── Program.cs
 ```
+DotNetBookstore/
+├── Controllers/
+│   ├── HomeController.cs
+│   ├── BooksController.cs          # Full CRUD with .Include() eager loading
+│   └── CategoriesController.cs     # Full CRUD
+├── Data/
+│   ├── ApplicationDbContext.cs     # EF Core DbContext (Identity + 5 DbSets)
+│   └── Migrations/                 # EF Core migration files
+├── Models/
+│   ├── Book.cs
+│   ├── Category.cs
+│   ├── CartItem.cs
+│   ├── Order.cs
+│   ├── OrderDetail.cs
+│   └── ErrorViewModel.cs
+├── Views/
+│   ├── Shared/
+│   │   ├── _Layout.cshtml          # Dark navbar, Bootstrap Icons CDN, sticky footer
+│   │   ├── _LoginPartial.cshtml    # Auth nav links with icons
+│   │   └── Error.cshtml            # Styled error card
+│   ├── Home/
+│   │   ├── Index.cshtml            # Hero section + feature cards
+│   │   └── Privacy.cshtml          # Card layout
+│   ├── Books/
+│   │   ├── Index.cshtml            # Hover table, image thumbnails, badges
+│   │   ├── Create.cshtml           # Card form with input-group icons
+│   │   ├── Edit.cshtml             # Card form, pre-selected category dropdown
+│   │   ├── Details.cshtml          # Cover image + info card with badges
+│   │   └── Delete.cshtml           # Danger confirmation card
+│   └── Categories/
+│       ├── Index.cshtml            # Hover table with icon action buttons
+│       ├── Create.cshtml           # Card form
+│       ├── Edit.cshtml             # Card form
+│       ├── Details.cshtml          # Card with dark header
+│       └── Delete.cshtml           # Danger confirmation card
+├── Areas/
+│   └── Identity/                   # Scaffolded Identity pages
+├── wwwroot/
+│   ├── css/site.css
+│   ├── js/site.js
+│   └── lib/                        # Bootstrap 5, jQuery, jQuery Validation
+├── Docs/
+│   ├── Post-Scaffolding-Guide-OneToMany.md
+│   └── Post-Model-Change-Migrations-Guide.md
+├── appsettings.json                # Connection string (do not commit credentials)
+├── appsettings.Development.json
+├── Program.cs
+└── DotNetBookstore.csproj          # .NET 10, EF Core 10, Identity packages
+```
+
+---
 
 ## Getting Started
 
 ### Prerequisites
 
-Install the following before running the app:
-
-- .NET 10 SDK
-- SQL Server LocalDB or SQL Server
-- Visual Studio 2026 or another compatible .NET IDE/editor
+- [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0)
+- [Visual Studio 2026](https://visualstudio.microsoft.com/) (or VS Code with C# Dev Kit)
+- SQL Server (local instance or Azure SQL Database)
 
 ### Clone the Repository
 
 ```bash
 git clone https://github.com/Dario-Hesami/DotNetBookstore-S26.git
-cd DotNetBookstore
+cd DotNetBookstore-S26
 ```
 
 ### Restore Dependencies
@@ -99,81 +235,125 @@ cd DotNetBookstore
 dotnet restore DotNetBookstore/DotNetBookstore.csproj
 ```
 
-### Apply the Database
-
-If LocalDB is available and the default connection string is valid for your environment, update the database with:
-
-```bash
-dotnet ef database update --project DotNetBookstore/DotNetBookstore.csproj
-```
-
-If the Entity Framework CLI tool is not installed, you may need:
-
-```bash
-dotnet tool install --global dotnet-ef
-```
-
 ### Run the Application
 
 ```bash
 dotnet run --project DotNetBookstore/DotNetBookstore.csproj
 ```
 
-By default, the development launch settings define these local URLs:
+Or press **F5** in Visual Studio to launch with debugging. The default launch URLs are:
 
-- `http://localhost:5170`
 - `https://localhost:7296`
+- `http://localhost:5170`
+
+---
+
+## Database Setup
+
+The application uses **EF Core code-first** with two migrations:
+
+| Migration | Description |
+|---|---|
+| `00000000000000_CreateIdentitySchema` | ASP.NET Core Identity tables |
+| `20260529000439_CreateBookstoreTables` | Categories, Books, CartItems, Orders, OrderDetails |
+
+Apply all migrations to a new database:
+
+```bash
+dotnet ef database update --project DotNetBookstore/DotNetBookstore.csproj
+```
+
+If the EF CLI tool is not installed:
+
+```bash
+dotnet tool install --global dotnet-ef
+```
+
+Add a new migration after model changes:
+
+```bash
+dotnet ef migrations add YourMigrationName --project DotNetBookstore/DotNetBookstore.csproj
+dotnet ef database update --project DotNetBookstore/DotNetBookstore.csproj
+```
+
+See [`Docs/Post-Model-Change-Migrations-Guide.md`](DotNetBookstore/Docs/Post-Model-Change-Migrations-Guide.md) for detailed guidance.
+
+---
 
 ## Configuration
 
-The main configuration file is:
+### ⚠️ Connection String Security
 
-- `DotNetBookstore/appsettings.json`
+**Never commit real credentials to source control.** Use [User Secrets](https://learn.microsoft.com/en-us/aspnet/core/security/app-secrets) for local development:
 
-The default connection string uses LocalDB:
+```bash
+dotnet user-secrets set "ConnectionStrings:DefaultConnection" "your-connection-string" --project DotNetBookstore/DotNetBookstore.csproj
+```
 
+### Connection String Examples
+
+**Local SQL Server (Windows Auth):**
 ```json
-"ConnectionStrings": {
-  "DefaultConnection": "Server=(localdb)\\mssqllocaldb;Database=aspnet-DotNetBookstore-066cf498-1be6-4125-920f-9291eae32e12;Trusted_Connection=True;MultipleActiveResultSets=true"
+{
+  "ConnectionStrings": {
+	"DefaultConnection": "Server=(localdb)\\mssqllocaldb;Database=dotnetbookstore;Trusted_Connection=True"
+  }
 }
 ```
 
-If you are using a different SQL Server instance, update `DefaultConnection` before running migrations or starting the app.
-
-## Available Pages and Routes
-
-The current application includes the following main routes:
-
-- `/` - Home page
-- `/Home/Privacy` - Privacy page
-- `/Categories` - Category list
-- `/Categories/Browse?category=CategoryName` - Browse a selected category
-- `/Identity/...` - ASP.NET Core Identity pages
-
-The default route is configured as:
-
-```text
-{controller=Home}/{action=Index}/{id?}
+**Azure SQL Database:**
+```json
+{
+  "ConnectionStrings": {
+	"DefaultConnection": "Server=your-server.database.windows.net;Database=dotnetbookstore-azure;User Id=dba;Password=YOUR_PASSWORD;TrustServerCertificate=true"
+  }
+}
 ```
 
-## Database
+---
 
-The app uses `ApplicationDbContext`, which currently derives from `IdentityDbContext`. This means the database is currently set up primarily for ASP.NET Core Identity tables.
+## Available Routes
 
-The repository also includes Entity Framework Core migration files under:
+| Route | Description |
+|---|---|
+| `/` | Home page (hero + feature cards) |
+| `/Home/Privacy` | Privacy policy page |
+| `/Books` | Books list |
+| `/Books/Create` | Add a new book |
+| `/Books/Edit/{id}` | Edit a book |
+| `/Books/Details/{id}` | Book detail view |
+| `/Books/Delete/{id}` | Delete confirmation |
+| `/Categories` | Categories list |
+| `/Categories/Create` | Add a new category |
+| `/Categories/Edit/{id}` | Edit a category |
+| `/Categories/Details/{id}` | Category detail view |
+| `/Categories/Delete/{id}` | Delete confirmation |
+| `/Identity/Account/Register` | User registration |
+| `/Identity/Account/Login` | User login |
 
-- `DotNetBookstore/Data/Migrations/`
+Default route pattern: `{controller=Home}/{action=Index}/{id?}`
 
-At the moment, the category list shown in the app is generated in memory inside `CategoriesController` rather than being loaded from a database table.
+---
 
-## Development Notes
+## Documentation
 
-- The application uses `AddControllersWithViews()` for MVC support.
-- Identity is configured with `RequireConfirmedAccount = true`.
-- Static assets are mapped through the ASP.NET Core asset pipeline.
-- The project includes Bootstrap and jQuery in `wwwroot/lib`.
-- The categories feature is currently a simple learning example and can be expanded into full CRUD functionality backed by Entity Framework Core.
+The `Docs/` folder contains detailed developer guides:
 
-## License
+| Document | Description |
+|---|---|
+| [`Post-Scaffolding-Guide-OneToMany.md`](DotNetBookstore/Docs/Post-Scaffolding-Guide-OneToMany.md) | Step-by-step fixes for scaffolded CRUD after adding one-to-many relationships — FK dropdowns, eager loading, Bind list trimming, dropdown repopulation |
+| [`Post-Model-Change-Migrations-Guide.md`](DotNetBookstore/Docs/Post-Model-Change-Migrations-Guide.md) | Guide for safely adding EF Core migrations after model changes |
 
-This repository includes a `LICENSE.txt` file. See that file for the project license terms.
+---
+
+## UI Enhancement History
+
+| Phase | Changes |
+|---|---|
+| Initial scaffold | Basic scaffolded CRUD views with default Bootstrap styling |
+| Post-scaffolding fixes | Fixed FK dropdowns (`CategoryId` → `<select>`), added `.Include()` eager loading, replaced raw FK integers with human-readable category names, removed reverse navigation collection columns |
+| **UI/UX Enhancement (Bootstrap 5)** | Full overhaul of all 14 views: dark navbar with Bootstrap Icons 1.11.3 (CDN), hero home page with feature cards, hover tables with image thumbnails and colour badges, card-wrapped forms with `input-group` icons, `form-switch` for boolean fields, danger confirmation cards, styled error page, sticky dark footer |
+
+---
+
+*Built with ❤️ at Georgian College · COMP2084 Summer 2026*

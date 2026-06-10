@@ -1,68 +1,103 @@
 @model DotNetBookstore.Models.Book
 
 @{
-    ViewData["Title"] = "Edit";
+    ViewData["Title"] = "Edit Book";
 }
 
-<h1>Edit</h1>
+<div class="row justify-content-center">
+    <div class="col-lg-6 col-md-8">
 
-<h4>Book</h4>
-<hr />
-<div class="row">
-    <div class="col-md-4">
-        <form asp-action="Edit">
-            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
-            <input type="hidden" asp-for="BookId" />
-            <div class="form-group">
-                <label asp-for="Author" class="control-label"></label>
-                <input asp-for="Author" class="form-control" />
-                <span asp-validation-for="Author" class="text-danger"></span>
+        <div class="d-flex align-items-center mb-4">
+            <a asp-action="Index" class="btn btn-outline-secondary btn-sm me-3">
+                <i class="bi bi-arrow-left"></i>
+            </a>
+            <div>
+                <h2 class="mb-0 fw-bold"><i class="bi bi-pencil-square me-2 text-primary"></i>Edit Book</h2>
+                <p class="text-muted mb-0 mt-1 small">Update the details for this book.</p>
             </div>
-            <div class="form-group">
-                <label asp-for="Title" class="control-label"></label>
-                <input asp-for="Title" class="form-control" />
-                <span asp-validation-for="Title" class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <label asp-for="Image" class="control-label"></label>
-                <input asp-for="Image" class="form-control" />
-                <span asp-validation-for="Image" class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <label asp-for="Price" class="control-label"></label>
-                <input asp-for="Price" class="form-control" />
-                <span asp-validation-for="Price" class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <label asp-for="MatureContent" class="control-label"></label>
-                <input asp-for="MatureContent" class="form-check-input" />
-                <span asp-validation-for="MatureContent" class="text-danger"></span>
-            </div>
-            @*
-                FIX AFTER SCAFFOLDING (Step 3): Same replacement as Create — the scaffolder's plain
-                CategoryId textbox is replaced by a <select> dropdown populated from ViewBag.CategoryId.
-                The Edit GET action passes a SelectList with the 4th argument set to book.CategoryId
-                so the dropdown opens with the book's current category already pre-selected.
-                The Category, CartItems, and OrderDetails <input> groups are removed entirely —
-                they are EF-managed navigation/collection properties, not user-entered fields.
-            *@
-            <div class="form-group">
-                <label asp-for="CategoryId" class="control-label"></label>
-                <select asp-for="CategoryId" asp-items="ViewBag.CategoryId" class="form-control">
-                    <option value="">-- Select a Category --</option>
-                </select>
-                <span asp-validation-for="CategoryId" class="text-danger"></span>
-            </div>
+        </div>
 
-            <div class="form-group">
-                <input type="submit" value="Save" class="btn btn-primary" />
+        <div class="card shadow-sm border-0">
+            <div class="card-body p-4">
+                <form asp-action="Edit">
+                    <div asp-validation-summary="ModelOnly" class="alert alert-danger py-2" role="alert"></div>
+                    <input type="hidden" asp-for="BookId" />
+
+                    <div class="mb-3">
+                        <label asp-for="Author" class="form-label fw-semibold"></label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="bi bi-person"></i></span>
+                            <input asp-for="Author" class="form-control" />
+                        </div>
+                        <span asp-validation-for="Author" class="text-danger small"></span>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="Title" class="form-label fw-semibold"></label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="bi bi-book"></i></span>
+                            <input asp-for="Title" class="form-control" />
+                        </div>
+                        <span asp-validation-for="Title" class="text-danger small"></span>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="Image" class="form-label fw-semibold"></label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="bi bi-image"></i></span>
+                            <input asp-for="Image" class="form-control" />
+                        </div>
+                        <span asp-validation-for="Image" class="text-danger small"></span>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="Price" class="form-label fw-semibold"></label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="bi bi-currency-dollar"></i></span>
+                            <input asp-for="Price" class="form-control" />
+                        </div>
+                        <span asp-validation-for="Price" class="text-danger small"></span>
+                    </div>
+
+                    <div class="mb-3">
+                        <div class="form-check form-switch">
+                            <input asp-for="MatureContent" class="form-check-input" role="switch" id="matureSwitch" />
+                            <label asp-for="MatureContent" class="form-check-label fw-semibold" for="matureSwitch">
+                                <i class="bi bi-exclamation-triangle me-1 text-warning"></i>Mature Content
+                            </label>
+                        </div>
+                        <span asp-validation-for="MatureContent" class="text-danger small"></span>
+                    </div>
+
+                    @*
+                        FIX AFTER SCAFFOLDING (Step 3): Same replacement as Create — the scaffolder's plain
+                        CategoryId textbox is replaced by a <select> dropdown populated from ViewBag.CategoryId.
+                        The Edit GET action passes a SelectList with the 4th argument set to book.CategoryId
+                        so the dropdown opens with the book's current category already pre-selected.
+                        The Category, CartItems, and OrderDetails <input> groups are removed entirely —
+                        they are EF-managed navigation/collection properties, not user-entered fields.
+                    *@
+                    <div class="mb-4">
+                        <label asp-for="CategoryId" class="form-label fw-semibold"><i class="bi bi-tag me-1"></i>Category</label>
+                        <select asp-for="CategoryId" asp-items="ViewBag.CategoryId" class="form-select">
+                            <option value="">-- Select a Category --</option>
+                        </select>
+                        <span asp-validation-for="CategoryId" class="text-danger small"></span>
+                    </div>
+
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary px-4">
+                            <i class="bi bi-check-circle me-1"></i>Save Changes
+                        </button>
+                        <a asp-action="Index" class="btn btn-outline-secondary px-4">
+                            <i class="bi bi-x-circle me-1"></i>Cancel
+                        </a>
+                    </div>
+                </form>
             </div>
-        </form>
+        </div>
+
     </div>
-</div>
-
-<div>
-    <a asp-action="Index">Back to List</a>
 </div>
 
 @section Scripts {

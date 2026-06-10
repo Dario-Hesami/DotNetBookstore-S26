@@ -1,63 +1,73 @@
 @model DotNetBookstore.Models.Book
 
 @{
-    ViewData["Title"] = "Details";
+    ViewData["Title"] = "Book Details";
 }
 
-<h1>Details</h1>
+<div class="row justify-content-center">
+    <div class="col-lg-7 col-md-9">
 
-<div>
-    <h4>Book</h4>
-    <hr />
-    <dl class="row">
-        <dt class="col-sm-2">
-            @Html.DisplayNameFor(model => model.Author)
-        </dt>
-        <dd class="col-sm-10">
-            @Html.DisplayFor(model => model.Author)
-        </dd>
-        <dt class="col-sm-2">
-            @Html.DisplayNameFor(model => model.Title)
-        </dt>
-        <dd class="col-sm-10">
-            @Html.DisplayFor(model => model.Title)
-        </dd>
-        <dt class="col-sm-2">
-            @Html.DisplayNameFor(model => model.Image)
-        </dt>
-        <dd class="col-sm-10">
-            @Html.DisplayFor(model => model.Image)
-        </dd>
-        <dt class="col-sm-2">
-            @Html.DisplayNameFor(model => model.Price)
-        </dt>
-        <dd class="col-sm-10">
-            @Html.DisplayFor(model => model.Price)
-        </dd>
-        <dt class="col-sm-2">
-            @Html.DisplayNameFor(model => model.MatureContent)
-        </dt>
-        <dd class="col-sm-10">
-            @Html.DisplayFor(model => model.MatureContent)
-        </dd>
-        @*
-            FIX AFTER SCAFFOLDING (Step 3): Replace the raw CategoryId row (which showed a meaningless
-            integer FK number) with a Category Name row that reads from the Category navigation property.
-            This works because the Details GET action now calls .Include(b => b.Category) to eagerly
-            load the related Category object via EF Core.
-            The Category (object), CartItems, and OrderDetails rows are removed entirely —
-            Category is an EF-managed object reference, and CartItems/OrderDetails are reverse
-            navigation collections. None of them are meaningful to display in a details view.
-        *@
-        <dt class="col-sm-2">
-            Category Name
-        </dt>
-        <dd class="col-sm-10">
-            @Html.DisplayFor(model => model.Category.Name)
-        </dd>
-    </dl>
-</div>
-<div>
-    <a asp-action="Edit" asp-route-id="@Model?.BookId">Edit</a> |
-    <a asp-action="Index">Back to List</a>
+        <div class="d-flex align-items-center mb-4">
+            <a asp-action="Index" class="btn btn-outline-secondary btn-sm me-3">
+                <i class="bi bi-arrow-left"></i>
+            </a>
+            <h2 class="mb-0 fw-bold"><i class="bi bi-eye me-2 text-info"></i>Book Details</h2>
+        </div>
+
+        <div class="card shadow-sm border-0">
+            @if (!string.IsNullOrWhiteSpace(Model?.Image))
+            {
+                <div class="text-center pt-4">
+                    <img src="@Model.Image" alt="@Model.Title cover"
+                         class="rounded shadow-sm"
+                         style="max-height:220px;max-width:160px;object-fit:cover;"
+                         onerror="this.style.display='none'" />
+                </div>
+            }
+            <div class="card-body p-4">
+                <h4 class="card-title fw-bold mb-1">@Model?.Title</h4>
+                <p class="text-muted mb-3"><i class="bi bi-person me-1"></i>@Model?.Author</p>
+
+                <hr />
+
+                <dl class="row mb-0">
+                    <dt class="col-sm-4 text-muted"><i class="bi bi-currency-dollar me-1"></i>Price</dt>
+                    <dd class="col-sm-8 fw-semibold text-success">$@Model?.Price.ToString("0.00")</dd>
+
+                    <dt class="col-sm-4 text-muted"><i class="bi bi-exclamation-triangle me-1"></i>Mature Content</dt>
+                    <dd class="col-sm-8">
+                        @if (Model?.MatureContent == true)
+                        {
+                            <span class="badge bg-danger"><i class="bi bi-18-up me-1"></i>Mature</span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-success"><i class="bi bi-check-circle me-1"></i>All Ages</span>
+                        }
+                    </dd>
+
+                    @*
+                        FIX AFTER SCAFFOLDING (Step 3): Replace the raw CategoryId row (which showed a meaningless
+                        integer FK number) with a Category Name row that reads from the Category navigation property.
+                        This works because the Details GET action now calls .Include(b => b.Category) to eagerly
+                        load the related Category object via EF Core.
+                        The Category (object), CartItems, and OrderDetails rows are removed entirely —
+                        Category is an EF-managed object reference, and CartItems/OrderDetails are reverse
+                        navigation collections. None of them are meaningful to display in a details view.
+                    *@
+                    <dt class="col-sm-4 text-muted"><i class="bi bi-tag me-1"></i>Category</dt>
+                    <dd class="col-sm-8"><span class="badge bg-secondary">@Html.DisplayFor(model => model.Category.Name)</span></dd>
+                </dl>
+            </div>
+            <div class="card-footer bg-transparent d-flex gap-2 pb-4 px-4">
+                <a asp-action="Edit" asp-route-id="@Model?.BookId" class="btn btn-primary btn-sm">
+                    <i class="bi bi-pencil me-1"></i>Edit
+                </a>
+                <a asp-action="Index" class="btn btn-outline-secondary btn-sm">
+                    <i class="bi bi-list me-1"></i>Back to List
+                </a>
+            </div>
+        </div>
+
+    </div>
 </div>
