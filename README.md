@@ -24,6 +24,7 @@ A full-featured ASP.NET Core MVC web application for managing an online bookstor
 - [Data Models](#data-models)
 - [Project Structure](#project-structure)
 - [Getting Started](#getting-started)
+- [Opening in VS Code](#opening-in-vs-code)
 - [Database Setup](#database-setup)
 - [Configuration](#configuration)
 - [Available Routes](#available-routes)
@@ -56,7 +57,7 @@ The project demonstrates real-world patterns including:
 | Database | SQL Server (Azure SQL Database) |
 | Authentication | ASP.NET Core Identity |
 | Frontend | Bootstrap 5, Bootstrap Icons 1.11.3, jQuery |
-| IDE | Visual Studio Enterprise 2026 |
+| IDE | Visual Studio Enterprise 2026 / VS Code + C# Dev Kit |
 
 ---
 
@@ -245,6 +246,74 @@ Or press **F5** in Visual Studio to launch with debugging. The default launch UR
 
 - `https://localhost:7296`
 - `http://localhost:5170`
+
+---
+
+## Opening in VS Code
+
+This repository includes a `.vscode/` configuration folder for a full VS Code development experience. These files are completely ignored by Visual Studio 2026 and do not affect that workflow in any way.
+
+### VS Code Configuration Files
+
+| File | Purpose |
+|---|---|
+| `.vscode/launch.json` | Two debug configs: **Launch (http)** on port 5170, **Launch (https)** on ports 7296/5170, plus Attach |
+| `.vscode/tasks.json` | `build` (default Ctrl+Shift+B), `publish`, and `watch` tasks via `dotnet` CLI |
+| `.vscode/settings.json` | Points to `DotNetBookstore.slnx`, format-on-save for C# and Razor, hides `bin/` and `obj/` from Explorer |
+| `.vscode/extensions.json` | Workspace-recommended extensions (auto-prompted on first open) |
+
+### Required Extensions
+
+Accept the workspace prompt on first open, or install manually from the Extensions panel:
+
+| Extension ID | Purpose |
+|---|---|
+| `ms-dotnettools.csharp` | C# language support — IntelliSense, diagnostics, go-to-definition |
+| `ms-dotnettools.csdevkit` | C# Dev Kit — Solution Explorer, test runner, enhanced refactoring |
+| `ms-dotnettools.vscode-dotnet-runtime` | .NET runtime installer used by the above extensions |
+
+### Steps to Open and Run
+
+1. **Open the folder** — `File → Open Folder` → select the `DotNetBookstore-S26/` root directory.
+2. **Install extensions** — accept the prompt to install recommended extensions, then reload VS Code.
+3. **Create `appsettings.json`** — this file is gitignored (keeps credentials out of source control). Create it at `DotNetBookstore/appsettings.json`:
+
+   ```json
+   {
+     "ConnectionStrings": {
+       "DefaultConnection": "Server=(localdb)\\mssqllocaldb;Database=DotNetBookstoreDb;Trusted_Connection=True;MultipleActiveResultSets=true;TrustServerCertificate=True"
+     },
+     "Logging": {
+       "LogLevel": {
+         "Default": "Information",
+         "Microsoft.AspNetCore": "Warning"
+       }
+     },
+     "AllowedHosts": "*"
+   }
+   ```
+
+   > Alternatively, store the connection string in [User Secrets](#️-connection-string-security) instead of `appsettings.json`.
+
+4. **Apply migrations** (first run only — skip if the database already exists from Visual Studio):
+
+   ```bash
+   dotnet ef database update --project DotNetBookstore/DotNetBookstore.csproj
+   ```
+
+5. **Run / Debug** — press `F5`, select **Launch (http)** or **Launch (https)** from the dropdown, and VS Code will build, start the app, and open the browser automatically.
+
+   For hot-reload development, use the `watch` task instead (`Terminal → Run Task → watch`):
+
+   ```bash
+   dotnet watch run --project DotNetBookstore/DotNetBookstore.csproj
+   ```
+
+### Trust the HTTPS Dev Certificate (once per machine)
+
+```bash
+dotnet dev-certs https --trust
+```
 
 ---
 
