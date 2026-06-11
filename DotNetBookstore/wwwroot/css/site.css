@@ -1,31 +1,303 @@
+/* ===================================================================
+   DotNet Bookstore – Custom Stylesheet
+   Design system built on Bootstrap 5
+   =================================================================== */
+
+/* ── 1. Design tokens ─────────────────────────────────────────── */
+:root {
+  --brand-gradient:        linear-gradient(135deg, #1e1b4b 0%, #3730a3 60%, #1e1b4b 100%);
+  --hero-gradient:         linear-gradient(135deg, #1e1b4b 0%, #312e81 50%, #4c1d95 100%);
+  --brand-gradient-light:  linear-gradient(135deg, #eef2ff 0%, #ede9fe 100%);
+
+  --card-shadow:       0 1px 3px rgba(0,0,0,.07), 0 4px 16px rgba(79,70,229,.08);
+  --card-shadow-hover: 0 8px 32px rgba(79,70,229,.18), 0 2px 8px rgba(0,0,0,.08);
+  --navbar-shadow:     0 2px 20px rgba(30,27,75,.45);
+
+  --radius-card: .75rem;
+  --radius-btn:  .5rem;
+
+  --transition:      220ms ease;
+  --transition-fast: 150ms ease;
+  --transition-slow: 380ms ease;
+}
+
+/* ── 2. Base ──────────────────────────────────────────────────── */
 html {
   font-size: 14px;
+  scroll-behavior: smooth;
 }
 
 @media (min-width: 768px) {
-  html {
-    font-size: 16px;
-  }
-}
-
-.btn:focus, .btn:active:focus, .btn-link.nav-link:focus, .form-control:focus, .form-check-input:focus {
-  box-shadow: 0 0 0 0.1rem white, 0 0 0 0.25rem #258cfb;
-}
-
-html {
-  position: relative;
-  min-height: 100%;
+  html { font-size: 16px; }
 }
 
 body {
-  margin-bottom: 60px;
+  background: #f4f3ff;
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  color: #1f2937;
 }
 
-.form-floating > .form-control-plaintext::placeholder, .form-floating > .form-control::placeholder {
-  color: var(--bs-secondary-color);
-  text-align: end;
+/* ── 3. Focus ring ────────────────────────────────────────────── */
+.btn:focus-visible,
+.form-control:focus,
+.form-select:focus,
+.form-check-input:focus {
+  box-shadow: 0 0 0 .2rem rgba(79,70,229,.25) !important;
+  outline: none;
 }
 
-.form-floating > .form-control-plaintext:focus::placeholder, .form-floating > .form-control:focus::placeholder {
-  text-align: start;
+/* ── 4. Navbar ────────────────────────────────────────────────── */
+.navbar {
+  background: var(--brand-gradient) !important;
+  box-shadow: var(--navbar-shadow);
+  min-height: 4rem;
+}
+
+.navbar-brand {
+  font-weight: 700;
+  letter-spacing: -.01em;
+  color: #fff !important;
+  transition: opacity var(--transition-fast);
+}
+.navbar-brand:hover { opacity: .85; }
+
+.brand-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  background: rgba(251,191,36,.18);
+  border: 1px solid rgba(251,191,36,.28);
+  border-radius: .4rem;
+  margin-right: .45rem;
+  vertical-align: middle;
+  font-size: 1rem;
+}
+
+.nav-link {
+  font-weight: 500;
+  border-radius: .375rem;
+  padding: .38rem .75rem !important;
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+.nav-link:hover  { background: rgba(255,255,255,.13); }
+.nav-link.active { background: rgba(255,255,255,.18) !important; color: #fbbf24 !important; }
+
+/* ── 5. Footer ────────────────────────────────────────────────── */
+footer {
+  background: var(--brand-gradient) !important;
+}
+footer a { transition: color var(--transition-fast); }
+footer a:hover { color: #fbbf24 !important; }
+
+/* ── 6. Cards ─────────────────────────────────────────────────── */
+.card {
+  border-radius: var(--radius-card) !important;
+  box-shadow: var(--card-shadow);
+  border: 1px solid rgba(99,102,241,.07) !important;
+}
+
+.card-hover {
+  transition: transform var(--transition), box-shadow var(--transition);
+}
+.card-hover:hover {
+  transform: translateY(-5px);
+  box-shadow: var(--card-shadow-hover) !important;
+}
+
+/* ── 7. Book cards ────────────────────────────────────────────── */
+.book-card {
+  overflow: hidden;
+  transition: transform var(--transition), box-shadow var(--transition);
+}
+.book-card:hover {
+  transform: translateY(-6px);
+  box-shadow: var(--card-shadow-hover) !important;
+}
+
+.book-cover-wrapper {
+  height: 210px;
+  background: var(--brand-gradient-light);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  position: relative;
+  flex-shrink: 0;
+}
+
+.book-cover-wrapper .cover-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.book-cover-placeholder {
+  color: #a5b4fc;
+  font-size: 3.5rem;
+}
+
+/* ── 8. Buttons ───────────────────────────────────────────────── */
+.btn {
+  border-radius: var(--radius-btn) !important;
+  font-weight: 500;
+  transition: all var(--transition-fast);
+}
+
+.btn-primary:hover {
+  background: #4338ca;
+  border-color: #4338ca;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(79,70,229,.3);
+}
+.btn-success:hover {
+  background: #047857;
+  border-color: #047857;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(5,150,105,.3);
+}
+.btn-danger:hover {
+  background: #b91c1c;
+  border-color: #b91c1c;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(220,38,38,.3);
+}
+.btn-warning:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(245,158,11,.3);
+}
+.btn-outline-primary:hover,
+.btn-outline-secondary:hover,
+.btn-outline-danger:hover,
+.btn-outline-info:hover,
+.btn-outline-light:hover {
+  transform: translateY(-1px);
+}
+
+/* ── 9. Form controls ─────────────────────────────────────────── */
+.form-control,
+.form-select {
+  border-radius: var(--radius-btn) !important;
+  border-color: #d1d5db;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+.form-control:focus,
+.form-select:focus {
+  border-color: #818cf8 !important;
+}
+
+.input-group-text {
+  border-radius: var(--radius-btn) 0 0 var(--radius-btn) !important;
+  background: #f0f0fe;
+  border-color: #d1d5db;
+  color: #6366f1;
+}
+
+/* ── 10. Tables ───────────────────────────────────────────────── */
+.table thead th {
+  font-size: .78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  padding: .85rem 1rem;
+}
+.table tbody td {
+  padding: .75rem 1rem;
+  vertical-align: middle;
+}
+
+/* ── 11. Badges ───────────────────────────────────────────────── */
+.badge {
+  font-weight: 600;
+  font-size: .7rem;
+  letter-spacing: .03em;
+  padding: .3em .6em;
+}
+
+/* ── 12. Alerts ───────────────────────────────────────────────── */
+.alert {
+  border-radius: var(--radius-card) !important;
+  border: none;
+}
+
+/* ── 13. Page header ──────────────────────────────────────────── */
+.page-header {
+  background: linear-gradient(to right, #eef2ff, #f5f3ff);
+  border-radius: var(--radius-card);
+  border-left: 4px solid #6366f1;
+  padding: 1rem 1.25rem;
+  margin-bottom: 1.5rem;
+  box-shadow: var(--card-shadow);
+}
+
+/* ── 14. Hero section ─────────────────────────────────────────── */
+.hero-section {
+  background: var(--hero-gradient);
+  border-radius: 1.25rem;
+  overflow: hidden;
+  position: relative;
+}
+.hero-section::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23ffffff' fill-opacity='0.03' fill-rule='evenodd'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/svg%3E");
+  pointer-events: none;
+}
+
+/* ── 15. Stat / feature cards ─────────────────────────────────── */
+.stat-card {
+  background: #fff;
+  border-radius: var(--radius-card);
+  padding: 1.5rem;
+  box-shadow: var(--card-shadow);
+  border: 1px solid rgba(99,102,241,.06);
+  text-align: center;
+  transition: transform var(--transition);
+}
+.stat-card:hover { transform: translateY(-3px); }
+
+.stat-icon {
+  width: 3.25rem;
+  height: 3.25rem;
+  border-radius: .75rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.4rem;
+  margin-bottom: .75rem;
+}
+
+/* ── 16. Empty state ──────────────────────────────────────────── */
+.empty-state {
+  padding: 4rem 1rem;
+  text-align: center;
+}
+.empty-state .empty-icon {
+  font-size: 3.5rem;
+  display: block;
+  margin-bottom: 1rem;
+  opacity: .3;
+  color: #6366f1;
+}
+
+/* ── 17. Utility helpers ──────────────────────────────────────── */
+.section-title   { letter-spacing: -.02em; color: #1e1b4b; }
+.text-indigo     { color: #6366f1 !important; }
+.bg-indigo-subtle { background: #eef2ff !important; }
+
+.divider-gradient {
+  height: 2px;
+  background: linear-gradient(to right, transparent, #a5b4fc 40%, #c4b5fd 60%, transparent);
+  border: none;
+  opacity: .6;
+  margin: 1.25rem 0;
+}
+
+/* Image preview in forms */
+#imagePreviewWrapper {
+  transition: opacity var(--transition-slow);
 }

@@ -8,29 +8,35 @@
     <div class="col-lg-5 col-md-7">
 
         <div class="d-flex align-items-center mb-4">
-            <a asp-action="Index" class="btn btn-outline-secondary btn-sm me-3">
+            <a asp-action="Index" class="btn btn-outline-secondary btn-sm me-3" title="Back to list">
                 <i class="bi bi-arrow-left"></i>
             </a>
             <div>
-                <h2 class="mb-0 fw-bold"><i class="bi bi-pencil-square me-2 text-primary"></i>Edit Category</h2>
-                <p class="text-muted mb-0 mt-1 small">Update the category name.</p>
+                <h2 class="mb-0 fw-bold section-title">
+                    <i class="bi bi-pencil-square me-2 text-primary"></i>Edit Category
+                </h2>
+                <p class="text-muted mb-0 mt-1 small">
+                    Updating <strong>@Model?.Name</strong>.
+                </p>
             </div>
         </div>
 
-        <div class="card shadow-sm border-0">
+        <div class="card shadow border-0">
             <div class="card-body p-4">
                 <form asp-action="Edit">
                     <div asp-validation-summary="ModelOnly" class="alert alert-danger py-2" role="alert"></div>
                     <input type="hidden" asp-for="CategoryId" />
 
                     <div class="mb-4">
-                        <label asp-for="Name" class="form-label fw-semibold"></label>
+                        <label asp-for="Name" class="form-label fw-semibold small text-uppercase text-muted"></label>
                         <div class="input-group">
                             <span class="input-group-text"><i class="bi bi-tag"></i></span>
                             <input asp-for="Name" class="form-control" />
                         </div>
                         <span asp-validation-for="Name" class="text-danger small"></span>
                     </div>
+
+                    <hr class="divider-gradient" />
 
                     <div class="d-flex gap-2">
                         <button type="submit" class="btn btn-primary px-4">
@@ -48,5 +54,5 @@
 </div>
 
 @section Scripts {
-    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    @{ await Html.RenderPartialAsync("_ValidationScriptsPartial"); }
 }

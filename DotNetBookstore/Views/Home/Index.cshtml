@@ -1,73 +1,127 @@
-﻿@* This is the view for the home page. *@
-
 @{
-    @* ViewData["Title"] is used to set the title of the page. *@
     ViewData["Title"] = "Home Page";
 }
 
-@* Hero section *@
-<div class="p-5 mb-4 bg-dark text-white rounded-3 shadow">
-    <div class="container-fluid py-3 text-center">
-        <i class="bi bi-book-half display-1 mb-3 d-block text-warning"></i>
-        <h1 class="display-5 fw-bold">Welcome to DotNet Bookstore</h1>
-        <p class="col-md-8 fs-5 mx-auto text-white-50">
-            Your one-stop destination for discovering and managing books. Browse our catalogue, explore categories, and find your next great read.
-        </p>
-        <div class="mt-4 d-flex gap-3 justify-content-center flex-wrap">
-            <a asp-controller="Books" asp-action="Index" class="btn btn-warning btn-lg px-4 fw-semibold">
-                <i class="bi bi-journal-bookmark me-2"></i>Browse Books
-            </a>
-            <a asp-controller="Categories" asp-action="Index" class="btn btn-outline-light btn-lg px-4">
-                <i class="bi bi-tags me-2"></i>View Categories
-            </a>
+@* ── Hero ───────────────────────────────────────────────────────── *@
+<div class="hero-section p-4 p-md-5 mb-5 text-white">
+    <div class="row align-items-center g-4 py-2">
+        <div class="col-lg-7">
+            <div class="mb-3">
+                <span class="badge bg-warning text-dark fw-semibold px-3 py-2 rounded-pill">
+                    <i class="bi bi-stars me-1"></i>ASP.NET Core MVC &middot; .NET 10
+                </span>
+            </div>
+            <h1 class="display-4 fw-bold mb-3" style="line-height:1.1">
+                Your Digital<br>
+                <span style="color:#fbbf24">Book Catalogue</span>
+            </h1>
+            <p class="lead mb-4" style="opacity:.82; max-width:480px">
+                Discover, manage, and explore books across a wide range of categories.
+                A modern catalogue built with ASP.NET Core MVC and .NET 10.
+            </p>
+            <div class="d-flex gap-3 flex-wrap">
+                <a asp-controller="Books" asp-action="Index"
+                   class="btn btn-warning btn-lg px-5 fw-semibold shadow-sm">
+                    <i class="bi bi-journal-bookmark me-2"></i>Browse Books
+                </a>
+                <a asp-controller="Categories" asp-action="Index"
+                   class="btn btn-outline-light btn-lg px-5">
+                    <i class="bi bi-tags me-2"></i>Categories
+                </a>
+            </div>
+        </div>
+        <div class="col-lg-5 text-center d-none d-lg-flex align-items-center justify-content-center">
+            <i class="bi bi-book-half"
+               style="font-size:clamp(6rem,14vw,10rem); opacity:.1; color:#fff; line-height:1;"></i>
         </div>
     </div>
 </div>
 
-@* Feature cards *@
-<div class="row row-cols-1 row-cols-md-3 g-4 mb-4">
+@* ── Feature cards ───────────────────────────────────────────────── *@
+<h2 class="section-title fs-4 fw-bold mb-4">Explore the Bookstore</h2>
+<div class="row row-cols-1 row-cols-md-3 g-4 mb-5">
+
     <div class="col">
-        <div class="card h-100 border-0 shadow-sm text-center">
+        <div class="card card-hover h-100 border-0">
             <div class="card-body p-4">
-                <i class="bi bi-search display-5 text-primary mb-3 d-block"></i>
-                <h5 class="card-title fw-semibold">Discover Books</h5>
-                <p class="card-text text-muted">Browse our full catalogue of books across a wide range of categories and genres.</p>
+                <div class="stat-icon bg-primary bg-opacity-10 text-primary mb-3">
+                    <i class="bi bi-journal-bookmark"></i>
+                </div>
+                <h5 class="card-title fw-bold">Book Catalogue</h5>
+                <p class="card-text text-muted">
+                    Browse the complete collection of books with cover art, authors,
+                    pricing, and content ratings.
+                </p>
             </div>
-            <div class="card-footer bg-transparent border-0 pb-4">
+            <div class="card-footer bg-transparent border-0 pb-4 px-4">
                 <a asp-controller="Books" asp-action="Index" class="btn btn-primary btn-sm px-3">
-                    <i class="bi bi-arrow-right me-1"></i>Go to Books
+                    <i class="bi bi-arrow-right me-1"></i>View Books
                 </a>
             </div>
         </div>
     </div>
+
     <div class="col">
-        <div class="card h-100 border-0 shadow-sm text-center">
+        <div class="card card-hover h-100 border-0">
             <div class="card-body p-4">
-                <i class="bi bi-tags display-5 text-success mb-3 d-block"></i>
-                <h5 class="card-title fw-semibold">Browse Categories</h5>
-                <p class="card-text text-muted">Explore books by category to quickly find titles that match your interests.</p>
+                <div class="stat-icon bg-success bg-opacity-10 text-success mb-3">
+                    <i class="bi bi-tags"></i>
+                </div>
+                <h5 class="card-title fw-bold">Categories</h5>
+                <p class="card-text text-muted">
+                    Organise and browse books by genre or category to quickly find
+                    exactly what you're looking for.
+                </p>
             </div>
-            <div class="card-footer bg-transparent border-0 pb-4">
+            <div class="card-footer bg-transparent border-0 pb-4 px-4">
                 <a asp-controller="Categories" asp-action="Index" class="btn btn-success btn-sm px-3">
-                    <i class="bi bi-arrow-right me-1"></i>Go to Categories
+                    <i class="bi bi-arrow-right me-1"></i>View Categories
                 </a>
             </div>
         </div>
     </div>
+
     <div class="col">
-        <div class="card h-100 border-0 shadow-sm text-center">
+        <div class="card card-hover h-100 border-0">
             <div class="card-body p-4">
-                <i class="bi bi-person-circle display-5 text-warning mb-3 d-block"></i>
-                <h5 class="card-title fw-semibold">Manage Your Account</h5>
-                <p class="card-text text-muted">Register or log in to manage books and categories within the bookstore system.</p>
+                <div class="stat-icon bg-warning bg-opacity-10 text-warning mb-3">
+                    <i class="bi bi-person-circle"></i>
+                </div>
+                <h5 class="card-title fw-bold">Account Management</h5>
+                <p class="card-text text-muted">
+                    Sign in or register to manage the bookstore catalogue — add, edit,
+                    and remove books and categories.
+                </p>
             </div>
-            <div class="card-footer bg-transparent border-0 pb-4">
+            <div class="card-footer bg-transparent border-0 pb-4 px-4">
                 <a asp-area="Identity" asp-page="/Account/Login" class="btn btn-warning btn-sm px-3">
                     <i class="bi bi-arrow-right me-1"></i>Get Started
                 </a>
             </div>
         </div>
     </div>
+
 </div>
 
-@* We're learning ASP.NET Core MVC in Summer 2026 at Georgian College. *@
+@* ── Quick info strip ─────────────────────────────────────────────── *@
+<div class="card border-0" style="background:linear-gradient(to right,#eef2ff,#f5f3ff)">
+    <div class="card-body p-4">
+        <div class="row g-4 text-center">
+            <div class="col-4">
+                <i class="bi bi-shield-check text-primary fs-3 d-block mb-1"></i>
+                <div class="fw-semibold small">Secure Auth</div>
+                <div class="text-muted" style="font-size:.75rem">ASP.NET Identity</div>
+            </div>
+            <div class="col-4">
+                <i class="bi bi-database text-success fs-3 d-block mb-1"></i>
+                <div class="fw-semibold small">EF Core</div>
+                <div class="text-muted" style="font-size:.75rem">SQL Server + LocalDB</div>
+            </div>
+            <div class="col-4">
+                <i class="bi bi-bootstrap text-indigo fs-3 d-block mb-1"></i>
+                <div class="fw-semibold small">Bootstrap 5</div>
+                <div class="text-muted" style="font-size:.75rem">Responsive UI</div>
+            </div>
+        </div>
+    </div>
+</div>

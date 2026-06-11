@@ -1,4 +1,4 @@
-# 📚 DotNet Bookstore
+# DotNet Bookstore
 
 A full-featured ASP.NET Core MVC web application for managing an online bookstore catalogue. Built as part of the **COMP2084** course at **Georgian College** (Summer 2026).
 
@@ -9,13 +9,13 @@ A full-featured ASP.NET Core MVC web application for managing an online bookstor
 
 ---
 
-## 🌐 Live Repository
+## Live Repository
 
 [https://github.com/Dario-Hesami/DotNetBookstore-S26](https://github.com/Dario-Hesami/DotNetBookstore-S26)
 
 ---
 
-## 📋 Table of Contents
+## Table of Contents
 
 - [Overview](#overview)
 - [Technology Stack](#technology-stack)
@@ -35,7 +35,7 @@ A full-featured ASP.NET Core MVC web application for managing an online bookstor
 
 ## Overview
 
-DotNet Bookstore is an ASP.NET Core MVC CRUD application that manages a bookstore's catalogue of books and categories. It uses Entity Framework Core with SQL Server (Azure) for data persistence, ASP.NET Core Identity for authentication, and Bootstrap 5 for a polished, responsive UI.
+DotNet Bookstore is an ASP.NET Core MVC CRUD application that manages a bookstore's catalogue of books and categories. It uses Entity Framework Core with SQL Server (Azure) for data persistence, ASP.NET Core Identity for authentication, and a fully custom Bootstrap 5 design system for a modern, responsive UI.
 
 The project demonstrates real-world patterns including:
 
@@ -44,6 +44,8 @@ The project demonstrates real-world patterns including:
 - Scaffolded CRUD controllers with post-scaffolding fixes
 - ASP.NET Core Identity (registration, login, logout)
 - Bootstrap 5 responsive layout with Bootstrap Icons
+- CSS custom properties for a consistent design token system
+- Reactive UI elements (live cover image preview, empty states, hover effects)
 
 ---
 
@@ -54,9 +56,10 @@ The project demonstrates real-world patterns including:
 | Framework | ASP.NET Core MVC (.NET 10) |
 | Language | C# 14 |
 | ORM | Entity Framework Core 10 |
-| Database | SQL Server (Azure SQL Database) |
+| Database | SQL Server (Azure SQL Database / LocalDB) |
 | Authentication | ASP.NET Core Identity |
-| Frontend | Bootstrap 5, Bootstrap Icons 1.11.3, jQuery |
+| Frontend | Bootstrap 5, Bootstrap Icons 1.11.3 (CDN), jQuery |
+| Custom CSS | `site.css` — full design system with CSS custom properties |
 | IDE | Visual Studio Enterprise 2026 / VS Code + C# Dev Kit |
 
 ---
@@ -64,14 +67,16 @@ The project demonstrates real-world patterns including:
 ## Features
 
 ### Books Management
-- **List** all books in a hover-table with cover image thumbnails, coloured Mature Content badges, category badges, and icon action buttons
-- **Create** a new book with author, title, image URL, price, mature content toggle, and category dropdown
-- **Edit** an existing book — category dropdown pre-selects the current value
-- **View Details** — card layout with cover image, all fields, and colour-coded badges
-- **Delete** — danger-themed confirmation card with full book summary
+
+- **List** all books in a **responsive card grid** (1 → 2 → 3 → 4 columns) with cover art, category badge, Mature Content badge, author, title, and price
+- **Create** a new book with author, title, image URL (with live cover preview), price, mature content toggle, and category dropdown
+- **Edit** an existing book — live cover preview loads from the existing URL on page open; category dropdown pre-selects the current value
+- **View Details** — two-column card layout with full-height cover image on the left and metadata on the right
+- **Delete** — danger-themed confirmation card with a cover thumbnail and full book summary
 
 ### Categories Management
-- **List** all categories in a clean hover-table
+
+- **List** all categories in a **responsive card grid** (1 → 2 → 3 → 4 columns) with icon, name, and action buttons
 - **Create**, **Edit**, **View Details**, and **Delete** categories with consistent card-wrapped forms and danger confirmation flow
 
 ### Authentication
@@ -79,43 +84,71 @@ The project demonstrates real-world patterns including:
 - Email confirmation required (`RequireConfirmedAccount = true`)
 - Navbar displays logged-in username with manage and logout links
 
+### UX Enhancements
+
+- **Active nav link** highlighting — current controller auto-detected at render time
+- **TempData toast area** in the layout — controllers can set `TempData["SuccessMessage"]` or `TempData["ErrorMessage"]` for dismissible Bootstrap alerts
+- **Empty states** on index pages — icon, message, and CTA when no records exist
+- **Live cover preview** — image renders below the URL field as you type; disappears silently on a broken URL
+- **Graceful image fallback** — gradient placeholder with a book icon is always rendered behind cover images; shows through on `onerror` with no JS required
+
 ---
 
 ## UI/UX Design
 
-The entire frontend was built and enhanced using **Bootstrap 5** with **Bootstrap Icons 1.11.3** (loaded via CDN). A consistent design language is applied across all 14 views.
+All views share a unified design language built on **Bootstrap 5** and a custom CSS design token system in `site.css`. Bootstrap Icons 1.11.3 is loaded via CDN.
+
+### Design Tokens (`site.css`)
+
+A set of CSS custom properties drives the entire visual theme:
+
+```css
+--brand-gradient        /* deep indigo → purple → indigo (navbar, footer) */
+--hero-gradient         /* darker 3-stop indigo gradient (home hero) */
+--brand-gradient-light  /* soft indigo→lavender (card covers, placeholders) */
+--card-shadow           /* subtle multi-layer shadow */
+--card-shadow-hover     /* lifted indigo-tinted shadow on hover */
+--radius-card           /* .75rem — all cards and alerts */
+--radius-btn            /* .5rem — all buttons and inputs */
+--transition            /* 220ms ease — card and button transitions */
+```
 
 ### Global Layout (`_Layout.cshtml`)
-- **Dark navbar** (`bg-dark`) with Bootstrap Icons in all nav links and the brand logo
-- Sticky **flex footer** (`bg-dark`) with Privacy and GitHub source links
-- `min-vh-100` flex-column body keeps the footer at the bottom on short pages
 
-### Home Page
-- **Hero section** — dark jumbotron with a large book icon, headline, description, and two CTA buttons (Browse Books / View Categories)
-- **Feature cards** — three equal-height cards for Discover Books, Browse Categories, and Manage Your Account
+- **Navbar** — deep indigo gradient (`--brand-gradient`), amber brand badge icon, active link highlighted in gold, smooth background-fade on hover. Active state is detected server-side via `ViewContext.RouteData.Values["controller"]`.
+- **Footer** — matching indigo gradient, responsive three-column layout (brand name / copyright / Privacy + GitHub links).
+- **TempData alerts** — success and error banners rendered automatically between the navbar and main content area; dismissible via Bootstrap's `btn-close`.
+- `min-vh-100` flex-column body keeps the footer pinned at the bottom on short pages.
+
+### Home Page (`Home/Index.cshtml`)
+
+- **Hero section** — full-width indigo/purple gradient card with an SVG dot-pattern texture overlay, large display heading with amber accent, lead text, and two CTA buttons (Browse Books / Categories).
+- **Feature cards** — three equal-height cards (Books, Categories, Account) with lift-on-hover effect, coloured icon badges, and action buttons.
+- **Tech strip** — a secondary info band showing Identity, EF Core, and Bootstrap with icons.
 
 ### Books Views
 
-| View | Enhancement |
+| View | Design |
 |---|---|
-| `Index` | `table-dark` header, `table-hover`, cover `<img>` thumbnail, colour badge for Mature Content, category badge, icon-only action buttons, empty-state message |
-| `Create` / `Edit` | Centred card form, `input-group` with Bootstrap Icons, `form-switch` for Mature Content, Bootstrap 5 `mb-3` spacing, Save/Cancel buttons |
-| `Details` | Card with cover image at top, `dl` info grid, colour-coded badges for Mature Content and Category |
-| `Delete` | Danger-bordered card, `alert-danger` warning banner, full book summary, Yes/Cancel buttons |
+| `Index` | Responsive card grid; cover art with gradient-placeholder fallback behind image; category + Mature badges; price in green; icon action buttons in card footer |
+| `Create` / `Edit` | Centred card form; `input-group` with Bootstrap Icons; small uppercase muted labels; live cover image preview below URL field; Mature Content toggle in a highlighted box; `divider-gradient` separator before action buttons |
+| `Details` | Two-column card — full-height cover (or gradient placeholder) on left, metadata on right; category and rating badges; price in large green text |
+| `Delete` | Red-bordered card with cover thumbnail, two-column summary; danger alert banner with triangle icon; "Delete Permanently" button |
 
 ### Categories Views
 
-| View | Enhancement |
+| View | Design |
 |---|---|
-| `Index` | Dark table header, `table-hover`, icon-only action buttons, empty-state message |
-| `Create` / `Edit` | Centred card form with tag icon input-group |
-| `Details` | Card with dark header showing category name |
-| `Delete` | Danger-bordered card with `alert-danger` warning, confirm/cancel buttons |
+| `Index` | Responsive card grid; tag icon in a rounded success-tinted badge; lift-on-hover; icon action buttons in card footer |
+| `Create` / `Edit` | Centred card form; tag icon `input-group`; `autofocus` on Create; divider before buttons |
+| `Details` | Gradient header band (indigo-subtle) with tag icon + category name; Edit / Delete / Back buttons |
+| `Delete` | Danger header band + danger alert warning about book assignments; "Delete Permanently" button |
 
-### Shared
-- **Error page** — large danger icon, styled `alert-secondary` for Request ID, `card` for dev-mode info, Return Home button
-- **Privacy page** — card with dark header, back navigation link
-- **Login Partial** — Bootstrap Icons on all auth links (Register, Login, Logout, Manage)
+### Shared Components
+
+- **Error page** — large danger octagon icon, `alert-secondary` for Request ID, yellow-tinted card for dev-mode info
+- **Privacy page** — centred card with shield icon and divider
+- **Empty states** — faint indigo icon, muted heading, small descriptor text, and a CTA button; used on both Books and Categories index pages
 
 ---
 
@@ -180,34 +213,34 @@ DotNetBookstore/
 │   └── ErrorViewModel.cs
 ├── Views/
 │   ├── Shared/
-│   │   ├── _Layout.cshtml          # Dark navbar, Bootstrap Icons CDN, sticky footer
-│   │   ├── _LoginPartial.cshtml    # Auth nav links with icons
-│   │   └── Error.cshtml            # Styled error card
+│   │   ├── _Layout.cshtml          # Indigo gradient navbar + footer, active nav, toast area
+│   │   ├── _LoginPartial.cshtml    # Auth nav links with Bootstrap Icons
+│   │   └── Error.cshtml            # Styled error page with icon and dev-mode card
 │   ├── Home/
-│   │   ├── Index.cshtml            # Hero section + feature cards
-│   │   └── Privacy.cshtml          # Card layout
+│   │   ├── Index.cshtml            # Hero section, feature cards, tech strip
+│   │   └── Privacy.cshtml          # Centred card with shield icon
 │   ├── Books/
-│   │   ├── Index.cshtml            # Hover table, image thumbnails, badges
-│   │   ├── Create.cshtml           # Card form with input-group icons
-│   │   ├── Edit.cshtml             # Card form, pre-selected category dropdown
-│   │   ├── Details.cshtml          # Cover image + info card with badges
-│   │   └── Delete.cshtml           # Danger confirmation card
+│   │   ├── Index.cshtml            # Responsive card grid with cover art and empty state
+│   │   ├── Create.cshtml           # Card form with live cover preview
+│   │   ├── Edit.cshtml             # Card form with live cover preview (pre-loaded)
+│   │   ├── Details.cshtml          # Two-column cover + metadata card
+│   │   └── Delete.cshtml           # Danger-bordered confirmation card with thumbnail
 │   └── Categories/
-│       ├── Index.cshtml            # Hover table with icon action buttons
-│       ├── Create.cshtml           # Card form
+│       ├── Index.cshtml            # Responsive card grid with empty state
+│       ├── Create.cshtml           # Card form with autofocus
 │       ├── Edit.cshtml             # Card form
-│       ├── Details.cshtml          # Card with dark header
-│       └── Delete.cshtml           # Danger confirmation card
+│       ├── Details.cshtml          # Gradient header band card
+│       └── Delete.cshtml           # Danger header band confirmation card
 ├── Areas/
 │   └── Identity/                   # Scaffolded Identity pages
 ├── wwwroot/
-│   ├── css/site.css
+│   ├── css/site.css                # Custom design system (tokens, components, utilities)
 │   ├── js/site.js
 │   └── lib/                        # Bootstrap 5, jQuery, jQuery Validation
 ├── Docs/
 │   ├── Post-Scaffolding-Guide-OneToMany.md
 │   └── Post-Model-Change-Migrations-Guide.md
-├── appsettings.json                # Connection string (do not commit credentials)
+├── appsettings.json                # Connection string (gitignored — do not commit credentials)
 ├── appsettings.Development.json
 ├── Program.cs
 └── DotNetBookstore.csproj          # .NET 10, EF Core 10, Identity packages
@@ -365,7 +398,7 @@ dotnet user-secrets set "ConnectionStrings:DefaultConnection" "your-connection-s
 ```json
 {
   "ConnectionStrings": {
-	"DefaultConnection": "Server=(localdb)\\mssqllocaldb;Database=dotnetbookstore;Trusted_Connection=True"
+    "DefaultConnection": "Server=(localdb)\\mssqllocaldb;Database=dotnetbookstore;Trusted_Connection=True"
   }
 }
 ```
@@ -374,7 +407,7 @@ dotnet user-secrets set "ConnectionStrings:DefaultConnection" "your-connection-s
 ```json
 {
   "ConnectionStrings": {
-	"DefaultConnection": "Server=your-server.database.windows.net;Database=dotnetbookstore-azure;User Id=dba;Password=YOUR_PASSWORD;TrustServerCertificate=true"
+    "DefaultConnection": "Server=your-server.database.windows.net;Database=dotnetbookstore-azure;User Id=dba;Password=YOUR_PASSWORD;TrustServerCertificate=true"
   }
 }
 ```
@@ -385,14 +418,14 @@ dotnet user-secrets set "ConnectionStrings:DefaultConnection" "your-connection-s
 
 | Route | Description |
 |---|---|
-| `/` | Home page (hero + feature cards) |
+| `/` | Home page (hero + feature cards + tech strip) |
 | `/Home/Privacy` | Privacy policy page |
-| `/Books` | Books list |
-| `/Books/Create` | Add a new book |
-| `/Books/Edit/{id}` | Edit a book |
-| `/Books/Details/{id}` | Book detail view |
-| `/Books/Delete/{id}` | Delete confirmation |
-| `/Categories` | Categories list |
+| `/Books` | Books card grid |
+| `/Books/Create` | Add a new book (with live cover preview) |
+| `/Books/Edit/{id}` | Edit a book (cover preview pre-loaded) |
+| `/Books/Details/{id}` | Two-column book detail view |
+| `/Books/Delete/{id}` | Delete confirmation with thumbnail |
+| `/Categories` | Categories card grid |
 | `/Categories/Create` | Add a new category |
 | `/Categories/Edit/{id}` | Edit a category |
 | `/Categories/Details/{id}` | Category detail view |
@@ -421,8 +454,9 @@ The `Docs/` folder contains detailed developer guides:
 |---|---|
 | Initial scaffold | Basic scaffolded CRUD views with default Bootstrap styling |
 | Post-scaffolding fixes | Fixed FK dropdowns (`CategoryId` → `<select>`), added `.Include()` eager loading, replaced raw FK integers with human-readable category names, removed reverse navigation collection columns |
-| **UI/UX Enhancement (Bootstrap 5)** | Full overhaul of all 14 views: dark navbar with Bootstrap Icons 1.11.3 (CDN), hero home page with feature cards, hover tables with image thumbnails and colour badges, card-wrapped forms with `input-group` icons, `form-switch` for boolean fields, danger confirmation cards, styled error page, sticky dark footer |
+| Bootstrap 5 UI pass | Full overhaul of all 14 views: dark navbar with Bootstrap Icons 1.11.3 (CDN), hero home page with feature cards, hover tables with image thumbnails and colour badges, card-wrapped forms with `input-group` icons, `form-switch` for boolean fields, danger confirmation cards, styled error page, sticky dark footer |
+| **Modern Design System** | Complete redesign of all 15 views and `site.css`: indigo/purple brand gradient replacing plain dark; CSS custom property token system (`--brand-gradient`, `--card-shadow`, `--radius-card`, etc.); Books and Categories index pages converted from tables to responsive card grids; live cover image preview (JS) in Create/Edit forms; layered gradient placeholder + real image on all cover slots with silent `onerror` fallback; two-column Details view (cover + metadata); active nav link via server-side controller detection; TempData toast area in layout; empty states with icon + CTA; page-header component with left accent border; `divider-gradient` separator; lift-on-hover transitions on all interactive cards and buttons |
 
 ---
 
-*Built with ❤️ at Georgian College · COMP2084 Summer 2026*
+Built with Georgian College · COMP2084 Summer 2026

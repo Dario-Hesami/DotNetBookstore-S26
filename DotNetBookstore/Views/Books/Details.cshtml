@@ -5,66 +5,110 @@
 }
 
 <div class="row justify-content-center">
-    <div class="col-lg-7 col-md-9">
+    <div class="col-xl-8 col-lg-10">
 
         <div class="d-flex align-items-center mb-4">
-            <a asp-action="Index" class="btn btn-outline-secondary btn-sm me-3">
+            <a asp-action="Index" class="btn btn-outline-secondary btn-sm me-3" title="Back to list">
                 <i class="bi bi-arrow-left"></i>
             </a>
-            <h2 class="mb-0 fw-bold"><i class="bi bi-eye me-2 text-info"></i>Book Details</h2>
+            <h2 class="mb-0 fw-bold section-title">
+                <i class="bi bi-eye me-2 text-info"></i>Book Details
+            </h2>
         </div>
 
-        <div class="card shadow-sm border-0">
-            @if (!string.IsNullOrWhiteSpace(Model?.Image))
-            {
-                <div class="text-center pt-4">
-                    <img src="@Model.Image" alt="@Model.Title cover"
-                         class="rounded shadow-sm"
-                         style="max-height:220px;max-width:160px;object-fit:cover;"
-                         onerror="this.style.display='none'" />
+        <div class="card shadow border-0">
+            <div class="card-body p-0">
+                <div class="row g-0">
+
+                    @* ── Cover column ──────────────────────────────────────── *@
+                    <div class="col-md-3">
+                        <div class="book-cover-wrapper h-100"
+                             style="min-height:280px; border-radius:var(--radius-card) 0 0 var(--radius-card);">
+                            <i class="bi bi-book-half book-cover-placeholder" aria-hidden="true"></i>
+                            @if (!string.IsNullOrWhiteSpace(Model?.Image))
+                            {
+                                <img src="@Model.Image" alt="@Model.Title cover"
+                                     class="cover-img"
+                                     onerror="this.style.display='none'" />
+                            }
+                        </div>
+                    </div>
+
+                    @* ── Info column ───────────────────────────────────────── *@
+                    <div class="col-md-9">
+                        <div class="p-4 h-100 d-flex flex-column">
+
+                            @* Badges *@
+                            <div class="mb-3 d-flex flex-wrap gap-2">
+                                @if (!string.IsNullOrWhiteSpace(Model?.Category?.Name))
+                                {
+                                    <span class="badge bg-secondary rounded-pill px-3 py-2">
+                                        <i class="bi bi-tag me-1"></i>@Model.Category.Name
+                                    </span>
+                                }
+                                @if (Model?.MatureContent == true)
+                                {
+                                    <span class="badge bg-danger rounded-pill px-3 py-2">
+                                        <i class="bi bi-18-up me-1"></i>Mature Content
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-success rounded-pill px-3 py-2">
+                                        <i class="bi bi-check-circle me-1"></i>All Ages
+                                    </span>
+                                }
+                            </div>
+
+                            <h3 class="fw-bold mb-1 section-title">@Model?.Title</h3>
+                            <p class="text-muted mb-3 fs-6">
+                                <i class="bi bi-person me-1"></i>by <strong>@Model?.Author</strong>
+                            </p>
+
+                            <hr class="divider-gradient" />
+
+                            <dl class="row mb-0 flex-grow-1">
+                                <dt class="col-sm-4 text-muted small fw-semibold text-uppercase py-1">Price</dt>
+                                <dd class="col-sm-8 fw-bold fs-4 text-success py-1 mb-0">
+                                    $@Model?.Price.ToString("0.00")
+                                </dd>
+
+                                <dt class="col-sm-4 text-muted small fw-semibold text-uppercase py-1">Author</dt>
+                                <dd class="col-sm-8 py-1 mb-0">@Model?.Author</dd>
+
+                                <dt class="col-sm-4 text-muted small fw-semibold text-uppercase py-1">Category</dt>
+                                <dd class="col-sm-8 py-1 mb-0">
+                                    <span class="badge bg-secondary">@Html.DisplayFor(m => m.Category.Name)</span>
+                                </dd>
+
+                                <dt class="col-sm-4 text-muted small fw-semibold text-uppercase py-1">Rating</dt>
+                                <dd class="col-sm-8 py-1 mb-0">
+                                    @if (Model?.MatureContent == true)
+                                    {
+                                        <span class="badge bg-danger"><i class="bi bi-18-up me-1"></i>Mature</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-success"><i class="bi bi-check-circle me-1"></i>All Ages</span>
+                                    }
+                                </dd>
+                            </dl>
+
+                        </div>
+                    </div>
+
                 </div>
-            }
-            <div class="card-body p-4">
-                <h4 class="card-title fw-bold mb-1">@Model?.Title</h4>
-                <p class="text-muted mb-3"><i class="bi bi-person me-1"></i>@Model?.Author</p>
-
-                <hr />
-
-                <dl class="row mb-0">
-                    <dt class="col-sm-4 text-muted"><i class="bi bi-currency-dollar me-1"></i>Price</dt>
-                    <dd class="col-sm-8 fw-semibold text-success">$@Model?.Price.ToString("0.00")</dd>
-
-                    <dt class="col-sm-4 text-muted"><i class="bi bi-exclamation-triangle me-1"></i>Mature Content</dt>
-                    <dd class="col-sm-8">
-                        @if (Model?.MatureContent == true)
-                        {
-                            <span class="badge bg-danger"><i class="bi bi-18-up me-1"></i>Mature</span>
-                        }
-                        else
-                        {
-                            <span class="badge bg-success"><i class="bi bi-check-circle me-1"></i>All Ages</span>
-                        }
-                    </dd>
-
-                    @*
-                        FIX AFTER SCAFFOLDING (Step 3): Replace the raw CategoryId row (which showed a meaningless
-                        integer FK number) with a Category Name row that reads from the Category navigation property.
-                        This works because the Details GET action now calls .Include(b => b.Category) to eagerly
-                        load the related Category object via EF Core.
-                        The Category (object), CartItems, and OrderDetails rows are removed entirely —
-                        Category is an EF-managed object reference, and CartItems/OrderDetails are reverse
-                        navigation collections. None of them are meaningful to display in a details view.
-                    *@
-                    <dt class="col-sm-4 text-muted"><i class="bi bi-tag me-1"></i>Category</dt>
-                    <dd class="col-sm-8"><span class="badge bg-secondary">@Html.DisplayFor(model => model.Category.Name)</span></dd>
-                </dl>
             </div>
-            <div class="card-footer bg-transparent d-flex gap-2 pb-4 px-4">
-                <a asp-action="Edit" asp-route-id="@Model?.BookId" class="btn btn-primary btn-sm">
-                    <i class="bi bi-pencil me-1"></i>Edit
+
+            <div class="card-footer bg-transparent d-flex flex-wrap gap-2 px-4 pb-4 pt-3">
+                <a asp-action="Edit" asp-route-id="@Model?.BookId" class="btn btn-primary">
+                    <i class="bi bi-pencil me-1"></i>Edit Book
                 </a>
-                <a asp-action="Index" class="btn btn-outline-secondary btn-sm">
-                    <i class="bi bi-list me-1"></i>Back to List
+                <a asp-action="Delete" asp-route-id="@Model?.BookId" class="btn btn-outline-danger">
+                    <i class="bi bi-trash me-1"></i>Delete
+                </a>
+                <a asp-action="Index" class="btn btn-outline-secondary ms-auto">
+                    <i class="bi bi-arrow-left me-1"></i>Back to List
                 </a>
             </div>
         </div>
