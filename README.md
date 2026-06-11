@@ -880,9 +880,14 @@ After deployment and migrations, follow these steps to confirm the live app is f
 
 #### 5 — Verify File Upload (Cover Images)
 
-- Create a book and upload a PNG or JPEG cover image.
-- After saving, the book card should show the uploaded image.
-- The file is saved to `wwwroot/img/books/` on the App Service file system (persists within the same instance but is **not shared** across scale-out instances — for a production-grade solution use Azure Blob Storage).
+1. Create a book and upload a PNG or JPEG cover image.
+2. After saving, the book card should show the uploaded image.
+3. To confirm the file physically exists on Azure, browse to it via Kudu:
+   - Azure Portal → App Service → **Development Tools** → **Advanced Tools** → **Go**.
+   - In the Kudu interface, click **Debug console → CMD**.
+   - Navigate to `D:\home\site\wwwroot\img\books\` — you will see the GUID-prefixed file, e.g. `a3f7c2d1-..._yourimage.jpg`.
+
+> **Important:** the file lives on Azure's persistent disk and survives app restarts, but it is deleted the next time you redeploy the app. See [Uploaded Images and Scale-Out](#uploaded-images-and-scale-out) for the full breakdown and storage capacity details.
 
 ---
 
@@ -1032,7 +1037,44 @@ To eliminate cold starts, upgrade to **Basic (B1)** or higher and enable **Alway
 
 #### Uploaded Images and Scale-Out
 
-Book cover images are saved to `wwwroot/img/books/` on the local file system of the App Service instance. On the Free and Basic tiers (single instance) this works fine. If you ever scale out to multiple instances, images on one instance will not be visible to requests served by another. For a scalable production app, replace the file upload code with **Azure Blob Storage**. This is outside the scope of the course but is the correct next step.
+When a user uploads a cover image through the live site, the file is written to `wwwroot/img/books/` at runtime. On Azure App Service (Windows hosting) this resolves to:
+
+```text
+D:\home\site\wwwroot\img\books\<guid-prefixed-filename>
+```
+
+The `D:\home\` volume is backed by **Azure's persistent networked storage (Azure Files)** — it is not a temporary RAM disk or OS temp folder. Files survive instance recycling and app restarts.
+
+**However, redeployment wipes the folder.** This is the key practical limitation:
+
+| Event | Uploaded images survive? |
+| --- | --- |
+| App restart / Azure recycles the process | **Yes** — `D:\home\` persists across restarts |
+| **Redeploy via Visual Studio Publish** | **No** — Web Deploy's default behaviour replaces `wwwroot`, deleting all runtime-uploaded files |
+| **Redeploy via GitHub Actions / Zip Deploy** | **No** — zip deploy replaces `wwwroot` entirely |
+| Scale out to 2+ instances | **No** — images uploaded to one instance are invisible to requests served by another |
+
+**How to browse uploaded files on Azure:**
+
+1. Azure Portal → App Service → **Development Tools** → **Advanced Tools** → **Go**.
+2. In the Kudu interface, click **Debug console → CMD** (or **PowerShell**).
+3. Navigate to `D:\home\site\wwwroot\img\books\` — all uploaded cover images are listed here.
+
+**Storage capacity on the Free (F1) tier:**
+
+The entire `D:\home\` volume is capped at **1 GB**, shared across all apps in the App Service Plan. Your deployed app binaries occupy roughly 30–50 MB, leaving ~950 MB for runtime-uploaded files. At 100 KB–2 MB per cover image that is 500–9,000 images — plenty for a course project. Storage size is not the practical constraint; **redeployment is**.
+
+| Tier | `D:\home\` storage quota |
+| --- | --- |
+| Free (F1) | 1 GB |
+| Shared (D1) | 1 GB |
+| Basic (B1) | 10 GB |
+| Standard (S1) | 50 GB |
+| Premium (P1v3) | 250 GB |
+
+**Production-grade solution — Azure Blob Storage:**
+
+For a real application, replace the local file-save logic in `BooksController.UploadImage()` with an upload to an **Azure Blob Storage** container, and store the blob URL in the `Image` column instead of a GUID filename. Uploaded files then live entirely outside the deployment path — they survive every redeploy, are visible to all scale-out instances, and storage is practically unlimited. This is outside the scope of the course but is the correct architectural next step.
 
 #### Connection String Security
 
