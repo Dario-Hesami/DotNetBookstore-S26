@@ -886,6 +886,143 @@ After deployment and migrations, follow these steps to confirm the live app is f
 
 ---
 
+### Troubleshooting: "Something Went Wrong" After Deployment
+
+If you followed **Option 1 / 1A** and the app published without errors but you see this on a page like `/Books`:
+
+```text
+Something went wrong
+An error occurred while processing your request.
+Request ID: 00-...
+```
+
+the app started but crashed while handling that specific request. ASP.NET Core hides the real exception in Production mode to protect sensitive information. This section walks you through finding the actual error and applying the right fix.
+
+---
+
+#### Step 1 — See the Real Error (App Service Log Stream)
+
+Find out *what* crashed before trying to fix it.
+
+1. In the Azure Portal, open your **App Service**.
+2. In the left menu, scroll to **Monitoring** → **Log stream**.
+3. In a separate browser tab, navigate to the failing URL (e.g. `https://your-app.azurewebsites.net/Books`).
+4. Switch back to the Log stream tab — the full exception and stack trace appear within a few seconds.
+
+Read the error message. The most common messages and their fixes are in the sections below.
+
+**Alternative — Kudu log files:**
+
+1. Azure Portal → App Service → **Development Tools** → **Advanced Tools** → **Go**.
+2. In the Kudu interface, navigate to **LogFiles** → **Application** to browse detailed error logs written to disk.
+
+---
+
+#### Step 2 — Temporarily Enable Detailed Error Pages (Optional)
+
+If the Log stream output is hard to parse, you can make the live site show the full developer exception page — the same detailed view you get locally. **Do this only while diagnosing, then switch back immediately.**
+
+1. Azure Portal → App Service → **Settings** → **Environment variables** → **App settings** tab.
+2. Find `ASPNETCORE_ENVIRONMENT` and change its value from `Production` to `Development`.
+3. Click **Apply** → **Confirm** and wait ~30 seconds for the app to restart.
+4. Reload the failing URL — you will now see the full exception message, stack trace, and request details in the browser.
+5. **Required:** After reading the error, set `ASPNETCORE_ENVIRONMENT` back to `Production` and click **Apply** → **Confirm**. Never leave a deployed app in Development mode.
+
+---
+
+#### Fix A — Connection String Missing or Incorrect (Most Common Cause)
+
+**Symptom in logs:** `SqlException`, `Cannot open database`, `Login failed for user`, or `A network-related or instance-specific error occurred while establishing a connection to SQL Server`.
+
+**Why it happens:** The local `appsettings.json` (which holds your LocalDB connection string) is listed in `.gitignore` and is never deployed. The Azure App Service has no connection string configured, so EF Core cannot reach the database and throws on the first query — which is why `/Books` crashes but the home page (which makes no DB calls) loads fine.
+
+**Fix:**
+
+1. Azure Portal → App Service → **Settings** → **Environment variables**.
+2. Click the **Connection strings** tab.
+3. Check whether an entry named `DefaultConnection` already exists:
+   - **Missing:** click **+ Add** and fill in:
+     - **Name:** `DefaultConnection`
+     - **Value:** your Azure SQL connection string (copied from Step 0 in this guide)
+     - **Type:** `SQLAzure`
+   - **Exists but wrong:** click the pencil icon and verify every part of the string. Common mistakes:
+     - Password contains a special character (`@`, `#`, `=`) that must be present verbatim — do not URL-encode it inside the connection string
+     - Database name or server name has a typo
+     - Server address is missing `.database.windows.net`
+     - `<your-admin-login>` or `<your-password>` placeholders were never replaced
+4. Click **Apply** → **Confirm** and wait ~30 seconds for the app to restart.
+5. Reload `https://your-app.azurewebsites.net/Books` — the page should now load.
+
+Your connection string should look exactly like this (with real values substituted):
+
+```text
+Server=tcp:bookstore-sqlserver-yourname.database.windows.net,1433;Initial Catalog=dotnetbookstore-db;Persist Security Info=False;User ID=your-admin-login;Password=your-password;MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;
+```
+
+> **Where to find this string:** Azure Portal → your **SQL Database** resource → **Settings** → **Connection strings** → **ADO.NET** tab. Copy it and replace the `{your_password}` placeholder with your actual password.
+
+---
+
+#### Fix B — Migrations Not Applied (Tables Do Not Exist)
+
+**Symptom in logs:** `Invalid object name 'Books'`, `Invalid object name 'Categories'`, `Invalid object name 'AspNetUsers'`, or similar — the connection is working but the database schema is empty.
+
+**Why it happens:** The Azure SQL Database was created empty. EF Core does not create tables automatically unless you explicitly run migrations or call `Migrate()` in code.
+
+**Quickest fix for students — add automatic migrations to `Program.cs`:**
+
+1. Open `DotNetBookstore/Program.cs` in Visual Studio.
+2. Find the line `var app = builder.Build();` and add the following block **immediately after it** (before `app.Run()`):
+
+   ```csharp
+   // Apply any pending EF Core migrations automatically on startup.
+   // Suitable for learning projects; for production use a dedicated migration step instead.
+   using (var scope = app.Services.CreateScope())
+   {
+       var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+       db.Database.Migrate();
+   }
+   ```
+
+3. Save the file.
+4. In Visual Studio, go to the **Publish** summary screen for your Azure profile and click **Publish** again to redeploy.
+5. On the very first request after deployment the app will run all pending migrations and create every table in Azure SQL.
+6. Navigate to `https://your-app.azurewebsites.net/Books` — it should now load the (empty) books list.
+
+> **Alternative:** Run migrations manually from Azure Cloud Shell as described in the [Apply Database Migrations on Azure](#apply-database-migrations-on-azure) section above.
+
+---
+
+#### Fix C — Azure SQL Firewall Blocking the App Service
+
+**Symptom in logs:** `Cannot open server '...' requested by the login. Client with IP address '...' is not allowed to access the server.`
+
+**Fix:**
+
+1. Azure Portal → your **SQL Server** resource (the logical server, not the database itself — look for the resource type *SQL server*).
+2. In the left menu, click **Security** → **Networking**.
+3. Under **Exceptions**, make sure **Allow Azure services and resources to access this server** is checked / set to **Yes**.
+4. Click **Save**.
+
+This firewall exception must be enabled for the Azure App Service to reach Azure SQL. Without it every connection attempt is blocked regardless of whether the connection string is correct.
+
+---
+
+#### Quick Diagnosis Checklist
+
+Work through these in order until the app loads:
+
+| # | Check | Where to verify |
+| --- | --- | --- |
+| 1 | Connection string is set in Azure App Service | Portal → App Service → Settings → Environment variables → **Connection strings** tab |
+| 2 | Connection string name is exactly `DefaultConnection` (case-sensitive) | Same location — verify the **Name** field character-by-character |
+| 3 | Connection string value has the correct server, database name, username, and password | Edit the entry and compare to Portal → SQL Database → Settings → Connection strings → ADO.NET |
+| 4 | Azure SQL firewall allows Azure services | Portal → SQL Server → Security → Networking → **Allow Azure services and resources to access this server** = Yes |
+| 5 | Migrations have been applied (tables exist) | Add `db.Database.Migrate()` to `Program.cs` and redeploy, **or** run `dotnet ef database update` from Azure Cloud Shell |
+| 6 | App Service has restarted after config changes | Portal → App Service → **Overview** → **Restart** button — always restart after changing environment variables |
+
+---
+
 ### Azure Deployment: Key Considerations
 
 #### Cold Start on Free Tier
