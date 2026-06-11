@@ -6,33 +6,45 @@
  * ============================================================================
  *
  * FILE:    Views/Books/Create.cshtml
- * PURPOSE: The "Add New Book" form. Collects Author, Title, Image URL, Price,
- *          Mature Content flag, and Category from the user and posts them to
- *          BooksController.Create (POST) for validation and database insertion.
+ * PURPOSE: The "Add New Book" form. Collects Author, Title, a cover image file,
+ *          Price, Mature Content flag, and Category, then posts them to
+ *          BooksController.Create (POST) for validation, image upload, and
+ *          database insertion.
  *
  * KEY CONCEPTS FOR STUDENTS:
- *  1. @model Book         — strongly typed to the Book entity. Tag Helpers
- *                           (asp-for) use this type to find property names,
- *                           validation rules, and display names automatically.
- *  2. asp-action="Create" — Tag Helper on the <form> tag. Generates:
- *                           action="/Books/Create" method="post" and adds the
- *                           hidden __RequestVerificationToken for CSRF protection.
- *  3. asp-for="Author"    — on a <label>: renders the [Display] name ("Author").
- *                           On an <input>: sets name, id, and value from the model.
- *  4. asp-validation-for  — renders a <span> that shows the server-side error
- *                           message for that field. Also used by jQuery Validation
- *                           (client-side) to display inline error messages.
- *  5. asp-validation-summary="ModelOnly" — shows model-level errors (not
- *                           field-level) at the top of the form in a red alert.
- *  6. asp-items="ViewBag.CategoryId" — populates the <select> options from the
- *                           SelectList that the controller put in ViewBag.
- *  7. input-group          — Bootstrap component that visually groups an icon
- *                           span + input field side-by-side with a shared border.
- *  8. Live image preview   — the @section Scripts block runs JavaScript that
- *                           listens for input events on the Image URL field and
- *                           shows a live preview thumbnail as the user types.
- *  9. @section Scripts     — injects view-specific JavaScript into the "Scripts"
- *                           section of _Layout.cshtml (after jQuery is loaded).
+ *  1. @model Book               — strongly typed to the Book entity. Tag Helpers
+ *                                 (asp-for) use this type to find property names,
+ *                                 validation rules, and display names automatically.
+ *  2. enctype="multipart/form-data" — REQUIRED for file uploads. Tells the
+ *                                 browser to encode the form in multiple parts so
+ *                                 that binary file content can be transmitted
+ *                                 alongside the text fields. Without this attribute
+ *                                 the file bytes are never sent to the server.
+ *  3. type="file" accept="..."  — renders the native OS file-picker dialog.
+ *                                 The accept attribute restricts the picker to
+ *                                 PNG and JPEG files (client-side hint only —
+ *                                 server-side validation also applies in the controller).
+ *  4. name="Image"              — the form field name must match the IFormFile
+ *                                 parameter name declared in the controller action
+ *                                 so ASP.NET Core can bind the uploaded stream.
+ *  5. asp-action="Create"       — Tag Helper on the <form> tag. Generates:
+ *                                 action="/Books/Create" method="post" and adds the
+ *                                 hidden __RequestVerificationToken for CSRF protection.
+ *  6. asp-for="Author"          — on a <label>: renders the [Display] name.
+ *                                 On an <input>: sets name, id, and value from the model.
+ *  7. asp-validation-for        — renders a <span> that shows the server-side error
+ *                                 message for that field and is also used by jQuery
+ *                                 Validation for inline client-side error messages.
+ *  8. asp-validation-summary="ModelOnly" — shows model-level errors (not
+ *                                 field-level) at the top of the form in a red alert.
+ *  9. asp-items="ViewBag.CategoryId" — populates the <select> options from the
+ *                                 SelectList that the controller put in ViewBag.
+ * 10. FileReader API (JS)       — reads the selected file directly in the browser
+ *                                 as a base-64 Data URL for the live preview, WITHOUT
+ *                                 uploading it to the server. The actual upload only
+ *                                 happens when the form is submitted.
+ * 11. @section Scripts          — injects view-specific JavaScript into the "Scripts"
+ *                                 section of _Layout.cshtml (after jQuery is loaded).
  * ============================================================================
  *@
 
@@ -65,9 +77,14 @@
         <div class="card shadow border-0">
             <div class="card-body p-4">
 
-                @* asp-action="Create" generates: action="/Books/Create" method="post"
-                   and also injects a hidden __RequestVerificationToken field for CSRF protection *@
-                <form asp-action="Create">
+                @*
+                   enctype="multipart/form-data" — CRITICAL for file uploads.
+                   Without it the browser only sends the filename as text, never
+                   the file bytes. The controller's IFormFile Image parameter
+                   will always be null if this attribute is missing.
+                   asp-action="Create" also injects a hidden CSRF token field.
+                *@
+                <form asp-action="Create" enctype="multipart/form-data">
 
                     @* Shows model-level validation errors (not individual field errors) *@
                     <div asp-validation-summary="ModelOnly" class="alert alert-danger py-2" role="alert"></div>
@@ -97,18 +114,31 @@
                         <span asp-validation-for="Title" class="text-danger small"></span>
                     </div>
 
-                    @* ── Image URL field with live preview ────────────────── *@
+                    @* ── Cover Image file upload with live preview ─────────── *@
                     <div class="mb-3">
-                        @* Custom label text overrides the property name for clearer UX *@
-                        <label asp-for="Image" class="form-label fw-semibold small text-uppercase text-muted">Cover Image URL</label>
+                        @* Custom label text: "Cover Image" is clearer than the raw property name *@
+                        <label class="form-label fw-semibold small text-uppercase text-muted">
+                            <i class="bi bi-image me-1"></i>Cover Image
+                        </label>
                         <div class="input-group">
-                            <span class="input-group-text"><i class="bi bi-image"></i></span>
-                            @* id="imageInput" is referenced by the JavaScript preview logic below *@
-                            <input asp-for="Image" class="form-control" placeholder="https://…" id="imageInput" />
+                            <span class="input-group-text"><i class="bi bi-upload"></i></span>
+                            @*
+                               type="file"   — opens the OS file picker dialog
+                               name="Image"  — must match the IFormFile parameter name in Create POST
+                               id="imageInput" — referenced by the JS preview script below
+                               accept="image/png, image/jpeg" — hints to the OS file picker
+                                              to filter to PNG and JPEG files (client-side only;
+                                              the server does not currently enforce a type check,
+                                              so in production you would validate ContentType too)
+                            *@
+                            <input type="file" name="Image" id="imageInput"
+                                   class="form-control" accept="image/png, image/jpeg" />
                         </div>
-                        <span asp-validation-for="Image" class="text-danger small"></span>
+                        <div class="form-text text-muted small">
+                            Accepted formats: PNG, JPEG. Leave empty to save the book without a cover image.
+                        </div>
 
-                        @* Live preview container — hidden by default (d-none), shown by JS *@
+                        @* Live preview container — hidden by default (d-none), revealed by JS *@
                         <div id="imagePreviewWrapper" class="mt-3 text-center d-none">
                             <div class="d-inline-block rounded-2 overflow-hidden shadow-sm"
                                  style="width:110px;height:160px;background:var(--brand-gradient-light)">
@@ -186,42 +216,54 @@
 
     <script>
         /*
-         * LIVE COVER IMAGE PREVIEW
-         * ─────────────────────────
-         * Listens for changes to the Image URL input field. Whenever the user
-         * types (or pastes) a URL, this code tries to load it into a hidden
-         * <img> element. If the image loads successfully, it shows the preview
-         * wrapper (removes d-none). If the image fails (broken URL), it re-hides
-         * the preview. This gives the user instant visual feedback.
+         * LIVE COVER IMAGE PREVIEW (FileReader API)
+         * ──────────────────────────────────────────
+         * When the user selects a file with the file picker, this code reads it
+         * in the browser using the FileReader API and displays it as a preview
+         * BEFORE the form is submitted.
+         *
+         * WHY FileReader instead of a URL string?
+         *   In the old URL-based approach the Image field was a text input and the
+         *   browser could load the image by pointing src at the typed URL.
+         *   Now Image is an <input type="file"> — no URL exists yet. FileReader
+         *   reads the file bytes directly from disk and converts them to a base-64
+         *   Data URL (data:image/jpeg;base64,...) that the browser can show inline.
+         *   The file is NOT uploaded to the server at this point; that only happens
+         *   on form submit.
+         *
+         * FileReader.readAsDataURL(file)
+         *   Reads the file asynchronously. When done it fires the onload event
+         *   with event.target.result set to the base-64 Data URL.
          *
          * The IIFE (Immediately Invoked Function Expression) — (function(){ ... })()
-         * — creates a private scope so the variables (input, wrapper, preview)
+         * — creates a private scope so variables (input, wrapper, preview)
          * don't pollute the global window object.
          */
         (function () {
-            var input   = document.getElementById('imageInput');       // the URL text field
+            var input   = document.getElementById('imageInput');       // the file input element
             var wrapper = document.getElementById('imagePreviewWrapper'); // the preview container
             var preview = document.getElementById('imagePreview');     // the <img> element
 
             if (!input) return; // safety guard: exit if element is missing
 
-            function updatePreview() {
-                var url = input.value.trim();
-                if (!url) {
-                    // Empty input: hide the preview
+            input.addEventListener('change', function () {
+                var file = input.files && input.files[0]; // grab the first selected file
+
+                if (!file) {
+                    // User cleared the selection — hide the preview
                     wrapper.classList.add('d-none');
                     return;
                 }
-                // Try loading the image — show on success, hide on error
-                preview.onload  = function () { wrapper.classList.remove('d-none'); };
-                preview.onerror = function () { wrapper.classList.add('d-none'); };
-                preview.src = url; // triggers browser to load the image
-            }
 
-            // Listen for every keystroke or paste
-            input.addEventListener('input', updatePreview);
-            // Run once immediately in case the form is pre-populated (edit mode)
-            updatePreview();
+                // Use FileReader to read the file as a base-64 Data URL
+                var reader = new FileReader();
+                reader.onload = function (e) {
+                    // e.target.result is the data:image/...;base64,... string
+                    preview.src = e.target.result;
+                    wrapper.classList.remove('d-none'); // reveal the preview box
+                };
+                reader.readAsDataURL(file); // triggers the async read
+            });
         })();
     </script>
 }

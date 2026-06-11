@@ -24,7 +24,9 @@
  *  4. @if / else               — renders the grid if books exist, or an
  *                                "empty state" placeholder if the catalogue is empty.
  *  5. Conditional rendering    — @if (!string.IsNullOrWhiteSpace(item.Image))
- *                                shows the <img> only when a URL was provided.
+ *                                shows the <img> only when a saved filename exists.
+ *                                The src is built as ~/img/books/{filename}, where
+ *                                the tilde resolves to wwwroot/ at render time.
  *                                onerror="this.style.display='none'" hides broken images.
  *  6. asp-route-id             — adds the book's ID to the action URL:
  *                                asp-action="Edit" asp-route-id="3" → /Books/Edit/3
@@ -84,7 +86,9 @@
                         <i class="bi bi-book-half book-cover-placeholder" aria-hidden="true"></i>
                         @if (!string.IsNullOrWhiteSpace(item.Image))
                         {
-                            <img src="@item.Image" alt="@item.Title cover"
+                            @* ~/img/books/ resolves to wwwroot/img/books/ at render time.
+                               item.Image stores only the GUID-prefixed filename saved on upload. *@
+                            <img src="~/img/books/@item.Image" alt="@item.Title cover"
                                  class="cover-img"
                                  onerror="this.style.display='none'" />
                         }

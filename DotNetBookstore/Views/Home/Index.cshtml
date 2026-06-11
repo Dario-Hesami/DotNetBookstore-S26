@@ -13,9 +13,11 @@
  * KEY CONCEPTS FOR STUDENTS:
  *  1. @{ } code block    — Razor C# code block. ViewData["Title"] is read by
  *                          _Layout.cshtml to set the browser tab title.
- *  2. @* ... *@          — Razor comment syntax. These are server-side comments
- *                          that are NEVER sent to the browser (unlike <!-- ... -->
- *                          HTML comments which ARE visible in page source).
+ *  2. Razor comments      — server-side comments that are NEVER sent to the
+ *                          browser (unlike <!-- --> HTML comments which ARE visible
+ *                          in page source). Syntax: @* opens, asterisk-@ closes.
+ *                          NOTE: the literal closing token cannot appear inside a
+ *                          Razor comment block as it would terminate the block.
  *  3. asp-controller /   — Tag Helpers that generate href URLs based on the
  *     asp-action           MVC routing table. Safer than hard-coding strings
  *                          because they update automatically if routes change.

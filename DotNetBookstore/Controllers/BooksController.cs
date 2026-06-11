@@ -7,11 +7,15 @@
  *
  * FILE:    Controllers/BooksController.cs
  * PURPOSE: Implements full CRUD (Create, Read, Update, Delete) for the Book
- *          entity. Because a Book belongs to a Category (foreign key), this
- *          controller is more complex than CategoriesController — it must:
+ *          entity. Because a Book belongs to a Category (foreign key) and can
+ *          have an uploaded cover image, this controller is more complex than
+ *          CategoriesController — it must:
  *            • Eagerly load the related Category for display (.Include())
  *            • Populate a dropdown list for the Category selector (SelectList)
  *            • Re-populate the dropdown on validation failure
+ *            • Handle multipart/form-data file uploads for book cover images
+ *            • Save uploaded files to wwwroot/img/books/ using a GUID prefix
+ *            • Delete orphaned image files when a book is updated or removed
  *
  * WHAT STUDENTS LEARN HERE (beyond CategoriesController basics):
  *  1. Eager loading (.Include)  — explicitly load a related entity in ONE query
@@ -27,6 +31,16 @@
  *                                 the dropdown disappears when the form re-renders.
  *  5. OrderBy in queries        — sort the book list and category dropdowns with
  *                                 LINQ OrderBy / ThenBy to improve usability.
+ *  6. IFormFile file upload     — receive a multipart/form-data file from the
+ *                                 browser, validate it, and persist it to disk.
+ *  7. IWebHostEnvironment       — injected service that exposes WebRootPath,
+ *                                 the absolute filesystem path to wwwroot/.
+ *  8. GUID file names           — prefix uploaded files with a Guid to avoid
+ *                                 collisions and prevent directory traversal attacks.
+ *  9. File cleanup on edit/delete — delete the old image file from disk when a
+ *                                 book's cover is replaced or the book is removed.
+ * 10. AsNoTracking + projection — read just the existing Image column with no
+ *                                 EF change tracking overhead before an edit POST.
  *
  * POST-SCAFFOLDING FIXES APPLIED (documented inline below):
  *  Step 1 → Added "using Microsoft.AspNetCore.Mvc.Rendering" for SelectList
@@ -34,6 +48,11 @@
  *  Step 3 → Added ViewBag.CategoryId SelectList to Create GET and Edit GET
  *  Step 4 → Removed navigation properties from [Bind] lists (Create & Edit POST)
  *  Step 5 → Repopulated ViewBag.CategoryId when ModelState is invalid (Create & Edit POST)
+ *  Step 6 → Removed Image from [Bind]; added IFormFile? Image parameter for file upload
+ *  Step 7 → Added IWebHostEnvironment injection for wwwroot path resolution
+ *  Step 8 → Added UploadImage() and DeleteImage() private helpers
+ *  Step 9 → Edit POST preserves existing image when no new file is uploaded
+ *  Step 10→ Delete POST removes the associated image file from disk
  * ============================================================================
  */
 
@@ -51,9 +70,16 @@ public class BooksController : Controller
     // Injected via constructor by the DI container (see Program.cs).
     private readonly ApplicationDbContext _context;
 
-    public BooksController(ApplicationDbContext context)
+    // FIX (Step 7): IWebHostEnvironment exposes WebRootPath — the absolute
+    // filesystem path to the wwwroot/ folder. Using it here is more reliable
+    // than Directory.GetCurrentDirectory() because WebRootPath always resolves
+    // to the actual web root regardless of the working directory at startup.
+    private readonly IWebHostEnvironment _webHostEnvironment;
+
+    public BooksController(ApplicationDbContext context, IWebHostEnvironment webHostEnvironment)
     {
         _context = context;
+        _webHostEnvironment = webHostEnvironment;
     }
 
     // ── GET: /Books ───────────────────────────────────────────────────────────
@@ -132,17 +158,41 @@ public class BooksController : Controller
     // where a malicious user could submit spoofed related-object data.
     // Solution: only bind the scalar, user-editable fields.
     //
+    // FIX (Step 6): Image is excluded from [Bind] because the uploaded file
+    // arrives as an IFormFile in the browser's multipart/form-data encoding —
+    // it is NOT a simple string value that can be bound directly from the form.
+    // The IFormFile? Image parameter receives the raw file stream separately.
+    // Book.Image is a nullable string that stores ONLY the saved filename (GUID prefix
+    // + original name), never a URL. The view reconstructs the full path as
+    // ~/img/books/{filename} when rendering the <img> tag.
+    //
     // FIX (Step 5): When validation fails, we return the form view — but the
     // ViewBag.CategoryId we set in the GET action is gone (ViewBag is per-request).
     // We must rebuild it here and include book.CategoryId as the 4th argument
     // so the dropdown pre-selects the category the user had already chosen.
     [HttpPost]
     [ValidateAntiForgeryToken]
+    // Image is intentionally excluded from [Bind]; it is received as IFormFile below.
     public async Task<IActionResult> Create(
-        [Bind("BookId,Author,Title,Image,Price,MatureContent,CategoryId")] Book book)
+        [Bind("BookId,Author,Title,Price,MatureContent,CategoryId")] Book book,
+        IFormFile? Image)
     {
         if (ModelState.IsValid)
         {
+            // FIX (Step 8): Call UploadImage() to save the file to wwwroot/img/books/
+            // and store the generated filename on the book entity.
+            if (Image != null && Image.Length > 0)
+            {
+                // UploadImage returns the GUID-prefixed filename (e.g., "abc123-cover.jpg").
+                // The full URL path ~/img/books/{filename} is built in the views.
+                book.Image = UploadImage(Image);
+            }
+            else
+            {
+                // No file uploaded — Image stays null (the view will show the placeholder icon).
+                book.Image = null;
+            }
+
             _context.Add(book);
             await _context.SaveChangesAsync();
             return RedirectToAction(nameof(Index));
@@ -192,10 +242,17 @@ public class BooksController : Controller
     // Saves the updated book fields to the database.
     //
     // FIX (Step 4): Same [Bind] fix as Create POST.
+    // FIX (Step 6): Image excluded from [Bind]; received as IFormFile? Image.
+    // FIX (Step 9): If no new file is uploaded, the existing image filename is
+    //               read from the database (AsNoTracking to avoid tracking conflicts)
+    //               and restored onto the book entity before saving. This prevents
+    //               accidentally wiping the cover image when a user edits other fields.
     [HttpPost]
     [ValidateAntiForgeryToken]
+    // Image is intentionally excluded from [Bind]; it is received as IFormFile below.
     public async Task<IActionResult> Edit(int? id,
-        [Bind("BookId,Author,Title,Image,Price,MatureContent,CategoryId")] Book book)
+        [Bind("BookId,Author,Title,Price,MatureContent,CategoryId")] Book book,
+        IFormFile? Image)
     {
         // Route ID must match the hidden BookId field in the form.
         if (id != book.BookId)
@@ -203,10 +260,45 @@ public class BooksController : Controller
             return NotFound();
         }
 
+        // FIX (Step 9 + 10): Load the existing image filename BEFORE the
+        // ModelState check so we can:
+        //   a) restore it if validation fails (view re-render still shows the image)
+        //   b) delete the old file when a new image is uploaded
+        // AsNoTracking() is critical here: we don't want EF to track this read
+        // because we're about to call _context.Update(book) on the same entity ID.
+        // If both were tracked, EF would throw an "already tracking an entity with
+        // the same key" exception.
+        var existingImage = await _context.Books
+            .AsNoTracking()
+            .Where(b => b.BookId == book.BookId)
+            .Select(b => b.Image)
+            .FirstOrDefaultAsync();
+
         if (ModelState.IsValid)
         {
             try
             {
+                if (Image != null && Image.Length > 0)
+                {
+                    // A new cover file was uploaded — save it and delete the old one.
+                    var newFileName = UploadImage(Image);
+
+                    // FIX (Step 10): Remove the old image file from disk to avoid
+                    // orphaned files accumulating in wwwroot/img/books/.
+                    if (!string.IsNullOrEmpty(existingImage))
+                    {
+                        DeleteImage(existingImage);
+                    }
+
+                    book.Image = newFileName;
+                }
+                else
+                {
+                    // No new file uploaded — preserve the existing filename so the
+                    // cover image is not lost when other fields are edited.
+                    book.Image = existingImage;
+                }
+
                 // Update() attaches the detached entity and marks all fields as modified.
                 // SaveChangesAsync() generates: UPDATE Books SET ... WHERE BookId = @id
                 _context.Update(book);
@@ -226,6 +318,10 @@ public class BooksController : Controller
             }
             return RedirectToAction(nameof(Index));
         }
+
+        // Validation failed — restore the existing image so the view re-renders
+        // the current cover correctly without losing it on the round-trip.
+        book.Image = existingImage;
 
         // FIX (Step 5): Repopulate the dropdown on validation failure.
         ViewBag.CategoryId = new SelectList(
@@ -264,6 +360,9 @@ public class BooksController : Controller
     //
     // ActionName("Delete") allows both the GET and POST Delete actions to share
     // the same URL (/Books/Delete/5) while having different C# method names.
+    //
+    // FIX (Step 10): Delete the associated image file from wwwroot/img/books/
+    // before removing the database record to avoid orphaned files on disk.
     [HttpPost, ActionName("Delete")]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> DeleteConfirmed(int? id)
@@ -271,11 +370,93 @@ public class BooksController : Controller
         var book = await _context.Books.FindAsync(id);
         if (book != null)
         {
+            // FIX (Step 10): Remove the image file from disk before deleting
+            // the database row. If we deleted the row first and the file delete
+            // failed, the file would be permanently orphaned with no way to find it.
+            if (!string.IsNullOrEmpty(book.Image))
+            {
+                DeleteImage(book.Image);
+            }
+
             _context.Books.Remove(book);
         }
 
         await _context.SaveChangesAsync();
         return RedirectToAction(nameof(Index));
+    }
+
+    // ── Private helper: UploadImage ───────────────────────────────────────────
+    // Saves an uploaded cover image to wwwroot/img/books/ and returns the
+    // GUID-prefixed filename that is stored in the Books.Image database column.
+    //
+    // WHY a GUID prefix?
+    //   Two users could upload files with the same name (e.g., "cover.jpg").
+    //   A GUID prefix (e.g., "a3f9c12b-...-cover.jpg") makes every stored filename
+    //   unique across the entire application and prevents one upload from silently
+    //   overwriting another. It also prevents directory traversal attacks where an
+    //   attacker names a file "../../web.config" — the GUID prefix blocks that.
+    //
+    // WHY IWebHostEnvironment.WebRootPath instead of Directory.GetCurrentDirectory()?
+    //   WebRootPath always resolves to the actual wwwroot/ directory regardless of
+    //   the process working directory. GetCurrentDirectory() can differ depending on
+    //   how the application is started (Visual Studio vs. dotnet run vs. IIS).
+    private string UploadImage(IFormFile image)
+    {
+        // Guard: return empty if the file is null or has no content.
+        if (image == null || image.Length == 0)
+        {
+            return string.Empty;
+        }
+
+        // Build the absolute path to wwwroot/img/books/ using WebRootPath.
+        var imagesPath = Path.Combine(_webHostEnvironment.WebRootPath, "img", "books");
+
+        // Create the directory if it does not exist yet (first run, or after clean checkout).
+        if (!Directory.Exists(imagesPath))
+        {
+            Directory.CreateDirectory(imagesPath);
+        }
+
+        // Prepend a GUID to guarantee a unique filename on disk.
+        // Format: "a3f9c12b-0000-0000-0000-000000000000-originalname.jpg"
+        var fileName = Guid.NewGuid().ToString() + "-" + image.FileName;
+
+        // Combine the directory path and the unique filename to get the full write path.
+        var uploadPath = Path.Combine(imagesPath, fileName);
+
+        // Open a FileStream to the destination path and copy the uploaded bytes into it.
+        // FileMode.Create overwrites any file that somehow already exists at that path.
+        using (var stream = new FileStream(uploadPath, FileMode.Create))
+        {
+            image.CopyTo(stream);
+        }
+
+        // Return only the filename (not the full path).
+        // Views reconstruct the URL as: ~/img/books/{fileName}
+        return fileName;
+    }
+
+    // ── Private helper: DeleteImage ───────────────────────────────────────────
+    // Removes a previously-uploaded cover image file from wwwroot/img/books/.
+    // Called when a book is deleted or its cover is replaced with a new upload.
+    // Silently does nothing if fileName is null/empty or the file no longer exists.
+    private void DeleteImage(string? fileName)
+    {
+        if (string.IsNullOrEmpty(fileName))
+        {
+            return;
+        }
+
+        var filePath = Path.Combine(_webHostEnvironment.WebRootPath, "img", "books", fileName);
+
+        // Only attempt deletion if the file actually exists — avoids an exception
+        // if the file was already manually removed or never written to disk.
+        // NOTE: Must qualify as System.IO.File because Controller inherits a File()
+        // method from ControllerBase that would otherwise shadow the static File class.
+        if (System.IO.File.Exists(filePath))
+        {
+            System.IO.File.Delete(filePath);
+        }
     }
 
     // ── Private helper ────────────────────────────────────────────────────────

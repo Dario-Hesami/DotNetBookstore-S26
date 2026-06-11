@@ -103,6 +103,12 @@ else
 // Redirect any plain http:// request to https:// automatically.
 app.UseHttpsRedirection();
 
+// UseStaticFiles() serves all files from wwwroot/ — including dynamically
+// uploaded images (e.g., book cover files saved to wwwroot/img/books/ at runtime).
+// It must come BEFORE UseRouting() so static file requests are short-circuited
+// before the MVC routing layer runs.
+app.UseStaticFiles();
+
 // Set up URL routing so the framework knows which controller/action to invoke.
 // Must be called BEFORE UseAuthorization.
 app.UseRouting();
@@ -111,8 +117,9 @@ app.UseRouting();
 // Must come AFTER UseRouting() and BEFORE MapControllerRoute().
 app.UseAuthorization();
 
-// Serve static files from wwwroot/ (CSS, JS, images, Bootstrap library files).
-// MapStaticAssets() is the .NET 10 optimised version of UseStaticFiles().
+// MapStaticAssets() is the .NET 10 optimised companion to UseStaticFiles().
+// It handles build-time known assets with content fingerprinting and
+// compression, while UseStaticFiles() above handles runtime-uploaded files.
 app.MapStaticAssets();
 
 // ── Step 7: Define the default MVC route ─────────────────────────────────────

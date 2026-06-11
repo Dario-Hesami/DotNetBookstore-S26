@@ -31,6 +31,13 @@
  *                              runtime, trust me". Safe to use for navigation
  *                              properties because EF Core always populates them
  *                              when you include them in a query.
+ *  7. Image as filename       — Book.Image stores only the GUID-prefixed filename
+ *                              of the uploaded cover (e.g., "abc123-cover.jpg"),
+ *                              NOT a URL. The full browser path is constructed in
+ *                              views as ~/img/books/{Image}. The file is written to
+ *                              wwwroot/img/books/ by BooksController.UploadImage()
+ *                              and deleted by BooksController.DeleteImage() on
+ *                              book update (image replace) or delete.
  * ============================================================================
  */
 
@@ -59,9 +66,15 @@ namespace DotNetBookstore.Models
         public string Title { get; set; } = string.Empty;
 
         // ── Image (nullable) ─────────────────────────────────────────────────
-        // The "?" makes this a nullable string — the book can exist without
-        // a cover image URL. The view checks for null/empty before rendering
-        // the <img> tag (see Books/Index.cshtml and Books/Details.cshtml).
+        // Stores the GUID-prefixed filename of the uploaded cover image
+        // (e.g., "a3f9c12b-...-cover.jpg"), NOT a URL. The file itself is saved
+        // to wwwroot/img/books/ by BooksController.UploadImage(). Views build
+        // the browser-accessible path as: ~/img/books/{Image}
+        //
+        // The "?" makes this nullable — a book can exist without a cover image.
+        // When null, the views fall back to the gradient placeholder icon.
+        // [ValidateNever] is NOT needed here because Image is excluded from
+        // [Bind] in the controller and handled separately as an IFormFile.
         public string? Image { get; set; }
 
         // ── Price ────────────────────────────────────────────────────────────

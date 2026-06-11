@@ -29,6 +29,8 @@
  *  5. Cancel button           — always provide a safe escape route. The Cancel
  *                              button is a plain link (not a form submit) that
  *                              returns to the Index without any database change.
+ *  6. ~/img/books/ path       — same as Details/Index: the tilde resolves to
+ *                              wwwroot/ so the thumbnail loads from the uploaded file.
  * ============================================================================
  *@
 
@@ -76,7 +78,8 @@
                             <i class="bi bi-book-half book-cover-placeholder" aria-hidden="true"></i>
                             @if (!string.IsNullOrWhiteSpace(Model?.Image))
                             {
-                                <img src="@Model.Image" alt="@Model.Title cover"
+                                @* ~/img/books/ resolves to wwwroot/img/books/ where uploaded covers are stored *@
+                                <img src="~/img/books/@Model.Image" alt="@Model.Title cover"
                                      class="cover-img"
                                      onerror="this.style.display='none'" />
                             }

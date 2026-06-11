@@ -26,7 +26,9 @@
  *                              left, wide details panel on the right.
  *  5. Null-conditional ?     — Model?.Image, Model?.Category?.Name use ? to
  *                              avoid NullReferenceException if either is null.
- *  6. onerror fallback       — if the cover <img> fails to load, inline JS hides
+ *  6. ~/img/books/ path      — the tilde (~) resolves to wwwroot/ so the browser
+ *                              fetches the uploaded file at /img/books/{filename}.
+ *  7. onerror fallback       — if the cover <img> fails to load, inline JS hides
  *                              the broken image so the gradient placeholder shows.
  * ============================================================================
  *@
@@ -66,7 +68,8 @@
                             @* Only render <img> if the book has an image URL *@
                             @if (!string.IsNullOrWhiteSpace(Model?.Image))
                             {
-                                <img src="@Model.Image" alt="@Model.Title cover"
+                                @* ~/img/books/ resolves to wwwroot/img/books/ — where uploaded covers are stored *@
+                                <img src="~/img/books/@Model.Image" alt="@Model.Title cover"
                                      class="cover-img"
                                      onerror="this.style.display='none'" />
                             }

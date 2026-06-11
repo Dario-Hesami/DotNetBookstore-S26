@@ -46,7 +46,8 @@ The project demonstrates real-world patterns including:
 - ASP.NET Core Identity (registration, login, logout)
 - Bootstrap 5 responsive layout with Bootstrap Icons
 - CSS custom properties for a consistent design token system
-- Reactive UI elements (live cover image preview, empty states, hover effects)
+- Reactive UI elements (live cover image preview via FileReader API, empty states, hover effects)
+- **File upload** — cover images uploaded via `multipart/form-data`, saved to `wwwroot/img/books/` with GUID-prefixed filenames; old files deleted on replace or book removal
 
 ---
 
@@ -77,7 +78,7 @@ Every source file in this repository has been annotated with two layers of purpo
 | `Models/ErrorViewModel.cs` | ViewModel vs. entity, expression-bodied property (`=>`), nullable reference types |
 | `Controllers/HomeController.cs` | MVC controller anatomy, action methods, `IActionResult`, `return View()`, `[ResponseCache]` |
 | `Controllers/CategoriesController.cs` | Full CRUD HTTP mapping, `async`/`await`, `[HttpPost]`, `[ValidateAntiForgeryToken]`, `[Bind]`, `ModelState.IsValid`, `DbUpdateConcurrencyException`, PRG pattern |
-| `Controllers/BooksController.cs` | All of the above **plus**: eager loading with `.Include()`, `SelectList` + `ViewBag`, repopulating dropdowns on validation failure, the 5 numbered post-scaffolding fixes |
+| `Controllers/BooksController.cs` | All of the above **plus**: eager loading with `.Include()`, `SelectList` + `ViewBag`, repopulating dropdowns on validation failure, the 10 numbered post-scaffolding fixes; `IFormFile` file upload, `IWebHostEnvironment.WebRootPath`, GUID filename strategy, `UploadImage()` / `DeleteImage()` helpers, preserving existing image on edit, deleting orphaned files on delete |
 | `Views/Shared/_Layout.cshtml` | Master layout template, `@RenderBody()`, `@RenderSectionAsync`, TempData flash messages, active nav link detection, `asp-append-version` cache busting |
 | `Views/Shared/_LoginPartial.cshtml` | Partial views, `@inject` in Razor, `SignInManager`, logout as a POST request (CSRF prevention) |
 | `Views/Shared/_ValidationScriptsPartial.cshtml` | Client-side vs. server-side validation, jQuery Validate, unobtrusive validation bridge |
@@ -86,8 +87,8 @@ Every source file in this repository has been annotated with two layers of purpo
 | `Views/_ViewStart.cshtml` | `_ViewStart` implicit hook, setting the default layout, per-view overrides |
 | `Views/Home/Index.cshtml` | Razor code blocks, `@*...*@` server-side comments, `asp-controller`/`asp-action`, Bootstrap grid, responsive utilities |
 | `Views/Books/Index.cshtml` | Strongly-typed `@model`, `.ToList()` to avoid double-enumeration, `@foreach`, conditional rendering, `asp-route-id`, empty state UX |
-| `Views/Books/Create.cshtml` | `asp-action` on `<form>`, `asp-for` on labels and inputs, `asp-validation-for`, `asp-items` + `ViewBag` dropdown, IIFE image preview JavaScript, `@section Scripts` |
-| `Views/Books/Edit.cshtml` | Hidden `BookId` field, pre-populated inputs, category pre-selection, `updatePreview()` on page load |
+| `Views/Books/Create.cshtml` | `asp-action` on `<form>`, `enctype="multipart/form-data"` for file upload, `<input type="file">` with `accept`, `asp-for` on labels and text inputs, `asp-validation-for`, `asp-items` + `ViewBag` dropdown, FileReader API live preview IIFE, `@section Scripts` |
+| `Views/Books/Edit.cshtml` | Hidden `BookId` field, `enctype="multipart/form-data"`, existing cover thumbnail with `~/img/books/` path, file input to replace image, "leave empty to keep" hint, FileReader live preview for new selection, pre-populated inputs, category pre-selection |
 | `Views/Books/Details.cshtml` | Read-only view, `@Html.DisplayFor`, `<dl>` definition list, null-conditional `?.`, two-column Bootstrap layout |
 | `Views/Books/Delete.cshtml` | Two-step GET→POST delete, hidden PK field, danger styling conventions, Cancel as a safe link |
 | `Views/Categories/*.cshtml` | All of the above patterns applied to a simpler, one-field entity — ideal for seeing the concepts in their most direct form |
@@ -125,10 +126,10 @@ Every source file in this repository has been annotated with two layers of purpo
 ### Books Management
 
 - **List** all books in a **responsive card grid** (1 → 2 → 3 → 4 columns) with cover art, category badge, Mature Content badge, author, title, and price
-- **Create** a new book with author, title, image URL (with live cover preview), price, mature content toggle, and category dropdown
-- **Edit** an existing book — live cover preview loads from the existing URL on page open; category dropdown pre-selects the current value
+- **Create** a new book with author, title, cover image file upload (PNG/JPEG; live FileReader preview), price, mature content toggle, and category dropdown
+- **Edit** an existing book — existing cover thumbnail shown; upload a new file to replace it (leave empty to keep current); category dropdown pre-selects the current value
 - **View Details** — two-column card layout with full-height cover image on the left and metadata on the right
-- **Delete** — danger-themed confirmation card with a cover thumbnail and full book summary
+- **Delete** — danger-themed confirmation card with a cover thumbnail and full book summary; the associated image file is removed from disk on confirmation
 
 ### Categories Management
 
@@ -145,7 +146,7 @@ Every source file in this repository has been annotated with two layers of purpo
 - **Active nav link** highlighting — current controller auto-detected at render time
 - **TempData toast area** in the layout — controllers can set `TempData["SuccessMessage"]` or `TempData["ErrorMessage"]` for dismissible Bootstrap alerts
 - **Empty states** on index pages — icon, message, and CTA when no records exist
-- **Live cover preview** — image renders below the URL field as you type; disappears silently on a broken URL
+- **Live cover preview (FileReader API)** — on Create, when a file is selected in the picker the FileReader API reads the bytes locally and shows a preview before the form is submitted; on Edit, the existing cover thumbnail is shown server-side and a new preview appears only when a replacement file is chosen
 - **Graceful image fallback** — gradient placeholder with a book icon is always rendered behind cover images; shows through on `onerror` with no JS required
 
 ---
@@ -187,7 +188,7 @@ A set of CSS custom properties drives the entire visual theme:
 | View | Design |
 |---|---|
 | `Index` | Responsive card grid; cover art with gradient-placeholder fallback behind image; category + Mature badges; price in green; icon action buttons in card footer |
-| `Create` / `Edit` | Centred card form; `input-group` with Bootstrap Icons; small uppercase muted labels; live cover image preview below URL field; Mature Content toggle in a highlighted box; `divider-gradient` separator before action buttons |
+| `Create` / `Edit` | Centred card form; `input-group` with Bootstrap Icons; small uppercase muted labels; `type="file"` cover image picker with FileReader live preview; Edit shows existing cover thumbnail; Mature Content toggle in a highlighted box; `divider-gradient` separator before action buttons |
 | `Details` | Two-column card — full-height cover (or gradient placeholder) on left, metadata on right; category and rating badges; price in large green text |
 | `Delete` | Red-bordered card with cover thumbnail, two-column summary; danger alert banner with triangle icon; "Delete Permanently" button |
 
@@ -219,7 +220,7 @@ Book
 ├── BookId (PK)
 ├── Author (required, max 100)
 ├── Title (required, max 200)
-├── Image (nullable URL string)
+├── Image (nullable; stores GUID-prefixed filename saved to wwwroot/img/books/)
 ├── Price (required, 0.01–10000)
 ├── MatureContent (bool)
 ├── CategoryId (FK → Category)
@@ -292,6 +293,8 @@ DotNetBookstore/
 ├── wwwroot/
 │   ├── css/site.css                # Custom design system (tokens, components, utilities)
 │   ├── js/site.js
+│   ├── img/
+│   │   └── books/                  # Uploaded book cover images (GUID-prefixed filenames)
 │   └── lib/                        # Bootstrap 5, jQuery, jQuery Validation
 ├── Docs/
 │   ├── Post-Scaffolding-Guide-OneToMany.md
@@ -512,6 +515,7 @@ The `Docs/` folder contains detailed developer guides:
 | Post-scaffolding fixes | Fixed FK dropdowns (`CategoryId` → `<select>`), added `.Include()` eager loading, replaced raw FK integers with human-readable category names, removed reverse navigation collection columns |
 | Bootstrap 5 UI pass | Full overhaul of all 14 views: dark navbar with Bootstrap Icons 1.11.3 (CDN), hero home page with feature cards, hover tables with image thumbnails and colour badges, card-wrapped forms with `input-group` icons, `form-switch` for boolean fields, danger confirmation cards, styled error page, sticky dark footer |
 | **Modern Design System** | Complete redesign of all 15 views and `site.css`: indigo/purple brand gradient replacing plain dark; CSS custom property token system (`--brand-gradient`, `--card-shadow`, `--radius-card`, etc.); Books and Categories index pages converted from tables to responsive card grids; live cover image preview (JS) in Create/Edit forms; layered gradient placeholder + real image on all cover slots with silent `onerror` fallback; two-column Details view (cover + metadata); active nav link via server-side controller detection; TempData toast area in layout; empty states with icon + CTA; page-header component with left accent border; `divider-gradient` separator; lift-on-hover transitions on all interactive cards and buttons |
+| **File Upload** | Cover image upload via `multipart/form-data` `<input type="file">` replacing the previous URL text field. Files saved to `wwwroot/img/books/` with GUID-prefixed names to prevent collisions. `IWebHostEnvironment` injected into `BooksController` for `WebRootPath` resolution. `UploadImage()` helper writes the file; `DeleteImage()` helper removes orphaned files on cover replace or book delete. Edit form shows the existing thumbnail and preserves it when no new file is chosen. FileReader API drives the in-browser live preview on Create and Edit without a round-trip. `app.UseStaticFiles()` added to `Program.cs` so uploaded runtime files are served from `wwwroot/`. |
 
 ---
 
