@@ -29,6 +29,7 @@ A full-featured ASP.NET Core MVC web application for managing an online bookstor
 - [Database Setup](#database-setup)
 - [Configuration](#configuration)
 - [Available Routes](#available-routes)
+- [Deploying to Azure Web App](#deploying-to-azure-web-app)
 - [Documentation](#documentation)
 - [UI Enhancement History](#ui-enhancement-history)
 
@@ -497,6 +498,427 @@ dotnet user-secrets set "ConnectionStrings:DefaultConnection" "your-connection-s
 | `/Identity/Account/Login` | User login |
 
 Default route pattern: `{controller=Home}/{action=Index}/{id?}`
+
+---
+
+## Deploying to Azure Web App
+
+This section walks you through deploying the DotNet Bookstore to **Azure App Service** (Azure Web Apps). Two main approaches are covered — Visual Studio 2026 and Azure Portal — and each approach includes both a **one-time publish** path and a **CI/CD pipeline** path. Database configuration and post-deployment verification are covered at the end.
+
+> **Audience:** Students and learners deploying a course project to a live URL for the first time.  
+> **Cost:** The Azure Free tier (F1) is sufficient for learning. You can also use Azure for Students credits.
+
+---
+
+### Prerequisites for Azure Deployment
+
+Before you start, make sure you have:
+
+| Requirement | Notes |
+|---|---|
+| **Azure account** | Sign up free at [azure.microsoft.com](https://azure.microsoft.com/free/). Students can use [Azure for Students](https://azure.microsoft.com/en-us/free/students/) for $100 free credit with no credit card. |
+| **Azure SQL Database** | You will create this during the steps below. The app requires a SQL Server-compatible database in production (LocalDB is local-only). |
+| **GitHub repository** | Required for the CI/CD path. The live repo is [github.com/Dario-Hesami/DotNetBookstore-S26](https://github.com/Dario-Hesami/DotNetBookstore-S26). |
+| **Visual Studio 2026** | Required for Option 1. Install the **ASP.NET and web development** workload. |
+| **.NET 10 SDK** | Already required for local development. |
+
+---
+
+### Step 0 — Create an Azure SQL Database (Required for Both Options)
+
+The app uses SQL Server. Before deploying the web app you need a live database for it to connect to.
+
+1. Sign in to the [Azure Portal](https://portal.azure.com).
+2. Click **Create a resource** → search for **SQL Database** → click **Create**.
+3. Fill in the **Basics** tab:
+   - **Resource group:** Create new, e.g. `bookstore-rg`
+   - **Database name:** e.g. `dotnetbookstore-db`
+   - **Server:** Click **Create new**
+     - Server name: any globally unique name, e.g. `bookstore-sqlserver-yourname`
+     - Location: choose the region closest to your users
+     - Authentication: **SQL authentication** — set an admin login and a strong password. Save these — you will need them for the connection string.
+   - **Compute + storage:** Click *Configure database* → choose **Basic** (5 DTU, ~$5/month) or the **Serverless** tier for a free trial.
+4. Go to **Networking** tab → set **Allow Azure services and resources to access this server** to **Yes**. This lets the Azure Web App reach the database.
+5. Click **Review + create** → **Create**. Wait ~2 minutes for provisioning.
+6. Once created, open the **SQL Database** resource → click **Connection strings** → copy the **ADO.NET** connection string. It looks like:
+
+   ```text
+   Server=tcp:bookstore-sqlserver-yourname.database.windows.net,1433;Initial Catalog=dotnetbookstore-db;Persist Security Info=False;User ID=<your-admin-login>;Password=<your-password>;MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;
+   ```
+
+   Replace `<your-admin-login>` and `<your-password>` with the values you set. **Keep this string safe — you will paste it into Azure App Service, never into source control.**
+
+---
+
+### Option 1 — Deploy Using Visual Studio 2026
+
+Visual Studio's built-in Publish wizard is the fastest way to get your app live. It creates all Azure resources for you, generates a reusable publish profile, and can optionally wire up a GitHub Actions CI/CD pipeline.
+
+#### 1A — One-Time Publish (Publish Wizard)
+
+1. Open the solution in **Visual Studio 2026**.
+2. In **Solution Explorer**, right-click the **DotNetBookstore** project → **Publish**.
+3. The Publish wizard opens. Select **Azure** as the target → click **Next**.
+4. Select **Azure App Service (Windows)** → click **Next**.
+
+   > **Linux vs Windows:** Either works for .NET 10. Windows is the default and matches the development environment. Linux is slightly cheaper.
+
+5. Sign in to your Azure account if prompted.
+6. Under **App Service instances**, click the **+** (Create new) button:
+   - **Name:** globally unique, e.g. `dotnetbookstore-yourname` — this becomes part of your URL (`https://dotnetbookstore-yourname.azurewebsites.net`)
+   - **Subscription:** select your subscription
+   - **Resource group:** select the `bookstore-rg` you created in Step 0 (or create a new one here)
+   - **Hosting plan:** click **New** → give it a name, choose a region, set the **Size** to **Free (F1)** for learning or **Basic (B1)** for always-on
+7. Click **Create** and wait ~1 minute for the resource to provision.
+8. Back in the wizard, select the newly created App Service instance → click **Next**.
+9. On the **API Management** step, click **Skip this step** → click **Finish**.
+10. Visual Studio generates a publish profile and shows the **Publish summary** screen.
+11. Before clicking Publish, configure the database connection string (see [Configure Connection Strings on Azure](#configure-connection-strings-and-app-settings-on-azure) below).
+12. Once the connection string is set, click **Publish**. Visual Studio will:
+    - Build the app in Release configuration
+    - Package and upload it to Azure
+    - Open the live URL in your browser when done
+
+**To re-deploy after code changes:** just click **Publish** again on the same publish profile summary page. The profile is saved in `Properties/PublishProfiles/` inside the project.
+
+---
+
+#### 1B — CI/CD from Visual Studio (GitHub Actions)
+
+Visual Studio can generate a GitHub Actions workflow for you so that every push to `main` automatically deploys to Azure.
+
+1. Complete steps 1–10 above to create the App Service and publish profile.
+2. On the **Publish summary** screen, find the **Continuous deployment** section and click **Edit** (or click the pencil icon next to the GitHub Actions entry).
+3. Click **Configure** → sign in to GitHub and authorize Visual Studio to access your repository.
+4. Select:
+   - **Repository:** `Dario-Hesami/DotNetBookstore-S26`
+   - **Branch:** `main`
+5. Click **Finish**. Visual Studio:
+   - Generates a workflow file at `.github/workflows/<profile-name>.yml`
+   - Adds the publish profile as a GitHub secret (`AZUREAPPSERVICE_PUBLISHPROFILE_...`) to your repository automatically
+   - Commits and pushes the workflow file
+6. Go to your GitHub repository → **Actions** tab — you will see the workflow run. When it turns green your app is live.
+7. From this point on, every `git push` to `main` triggers a new deployment automatically.
+
+---
+
+### Option 2 — Deploy Using the Azure Portal
+
+Use this path if you prefer to stay in the browser, or when Visual Studio is not available.
+
+#### 2A — Create the Azure Web App in the Portal
+
+1. Sign in to the [Azure Portal](https://portal.azure.com).
+2. Click **Create a resource** → search for **Web App** → click **Create**.
+3. Fill in the **Basics** tab:
+
+   | Field | Value |
+   | --- | --- |
+   | **Resource group** | `bookstore-rg` (or create new) |
+   | **Name** | Globally unique, e.g. `dotnetbookstore-yourname` |
+   | **Publish** | **Code** |
+   | **Runtime stack** | **.NET 10 (STS)** |
+   | **Operating System** | **Windows** (or Linux) |
+   | **Region** | Region closest to your users |
+   | **Pricing plan** | **Free F1** for learning, **Basic B1** for always-on |
+
+4. Click **Review + create** → **Create**. Wait ~1 minute.
+
+---
+
+#### 2B — One-Time Deployment via Zip Deploy (Portal)
+
+This method lets you deploy manually without Visual Studio by uploading a zip of the published output.
+
+**Step 1 — Publish locally to a folder.**
+
+In a terminal at the repo root:
+
+```bash
+dotnet publish DotNetBookstore/DotNetBookstore.csproj --configuration Release --output ./publish-output
+```
+
+**Step 2 — Zip the output.**
+
+```powershell
+# In PowerShell
+Compress-Archive -Path .\publish-output\* -DestinationPath .\bookstore.zip
+```
+
+**Step 3 — Upload via Kudu (Advanced Tools).**
+
+1. In the Azure Portal, open your **App Service** resource.
+2. In the left menu, scroll to **Development Tools** → click **Advanced Tools** → **Go**.
+3. In the Kudu interface, click **Tools** → **Zip Push Deploy**.
+4. Drag and drop `bookstore.zip` onto the page, or use the file browser to upload it.
+5. Kudu extracts the zip to `D:\home\site\wwwroot\` and restarts the app.
+6. Navigate to `https://<your-app-name>.azurewebsites.net` to see the live app.
+
+**Alternative — Azure CLI zip deploy:**
+
+```bash
+az webapp deploy --resource-group bookstore-rg --name dotnetbookstore-yourname --src-path bookstore.zip --type zip
+```
+
+---
+
+#### 2C — Continuous Deployment with GitHub Actions (Portal)
+
+This sets up a CI/CD pipeline directly from the Azure Portal using GitHub Actions.
+
+**Step 1 — Enable GitHub Actions deployment.**
+
+1. In the Azure Portal, open your **App Service** resource.
+2. In the left menu, click **Deployment** → **Deployment Center**.
+3. Under **Source**, select **GitHub**.
+4. Click **Authorize** and sign in to GitHub to grant Azure access to your repositories.
+5. Select:
+   - **Organization:** `Dario-Hesami`
+   - **Repository:** `DotNetBookstore-S26`
+   - **Branch:** `main`
+6. Under **Authentication type**, choose **Basic authentication** (simplest) or **User-assigned identity** (more secure).
+7. Click **Save**.
+
+**Step 2 — What Azure does automatically.**
+
+Azure generates a workflow file and commits it to your repository at:
+
+```text
+.github/workflows/main_dotnetbookstore-yourname.yml
+```
+
+It also stores the publish profile as a GitHub repository secret so the workflow can authenticate without exposing credentials.
+
+**Step 3 — Verify the pipeline.**
+
+1. Go to your GitHub repository → **Actions** tab.
+2. You will see a workflow run triggered by the commit Azure just made. Wait for it to turn green.
+3. After that, every push to `main` automatically builds and deploys to Azure.
+
+**Manually writing the workflow (optional — if you prefer full control).**
+
+Create `.github/workflows/azure-deploy.yml` in your repository:
+
+```yaml
+name: Deploy to Azure Web App
+
+on:
+  push:
+    branches:
+      - main
+
+env:
+  AZURE_WEBAPP_NAME: dotnetbookstore-yourname   # Replace with your app name
+  DOTNET_VERSION: '10.0.x'
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Restore dependencies
+        run: dotnet restore DotNetBookstore/DotNetBookstore.csproj
+
+      - name: Build
+        run: dotnet build DotNetBookstore/DotNetBookstore.csproj --configuration Release --no-restore
+
+      - name: Publish
+        run: dotnet publish DotNetBookstore/DotNetBookstore.csproj --configuration Release --output ./publish-output --no-build
+
+      - name: Deploy to Azure Web App
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: ${{ env.AZURE_WEBAPP_NAME }}
+          publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
+          package: ./publish-output
+```
+
+Then add the publish profile secret:
+
+1. Azure Portal → App Service → **Overview** → **Download publish profile** → save the file.
+2. GitHub repo → **Settings** → **Secrets and variables** → **Actions** → **New repository secret**.
+3. Name: `AZURE_WEBAPP_PUBLISH_PROFILE`, Value: paste the full contents of the downloaded `.PublishSettings` file.
+
+---
+
+### Configure Connection Strings and App Settings on Azure
+
+The local `appsettings.json` is not deployed (it is `.gitignore`d). You must configure the connection string directly in Azure App Service — it is stored encrypted and injected as an environment variable at runtime, overriding anything in `appsettings.json`.
+
+#### Set the Connection String
+
+1. In the Azure Portal, open your **App Service**.
+2. In the left menu, click **Settings** → **Environment variables**.
+3. Click the **Connection strings** tab.
+4. Click **+ Add**.
+5. Fill in:
+   - **Name:** `DefaultConnection`
+   - **Value:** the Azure SQL connection string you copied in Step 0 (with your admin login and password filled in)
+   - **Type:** `SQLAzure`
+6. Click **Apply** → **Confirm**.
+
+The app reads this at startup via:
+
+```csharp
+// Program.cs
+builder.Services.AddDbContext<ApplicationDbContext>(options =>
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+```
+
+Azure App Service automatically maps the `DefaultConnection` connection string setting to the `ConnectionStrings:DefaultConnection` configuration key that `GetConnectionString()` reads — no code changes required.
+
+#### Set Additional App Settings
+
+1. In **Settings** → **Environment variables** → **App settings** tab.
+2. Click **+ Add** for each setting below:
+
+   | Name | Value | Purpose |
+   | --- | --- | --- |
+   | `ASPNETCORE_ENVIRONMENT` | `Production` | Enables production error pages, disables developer exception page |
+
+3. Click **Apply** → **Confirm**.
+
+> **HTTPS Only:** In **Settings** → **Configuration** → **General settings**, enable **HTTPS Only** — this forces all HTTP traffic to redirect to HTTPS automatically.
+
+---
+
+### Apply Database Migrations on Azure
+
+The Azure SQL Database is empty after creation. You must run EF Core migrations to create all the tables before the app will work.
+
+#### Option A — Azure Cloud Shell (Recommended for Students)
+
+1. In the Azure Portal, click the **Cloud Shell** icon (top toolbar, looks like `>_`).
+2. Choose **Bash**.
+3. Clone the repository into Cloud Shell:
+
+   ```bash
+   git clone https://github.com/Dario-Hesami/DotNetBookstore-S26.git
+   cd DotNetBookstore-S26
+   ```
+
+4. Install the EF Core CLI tool:
+
+   ```bash
+   dotnet tool install --global dotnet-ef
+   export PATH="$PATH:/home/$USER/.dotnet/tools"
+   ```
+
+5. Set the connection string as an environment variable (replace the placeholders):
+
+   ```bash
+   export ConnectionStrings__DefaultConnection="Server=tcp:bookstore-sqlserver-yourname.database.windows.net,1433;Initial Catalog=dotnetbookstore-db;Persist Security Info=False;User ID=your-admin;Password=your-password;Encrypt=True;"
+   ```
+
+6. Run migrations:
+
+   ```bash
+   dotnet ef database update --project DotNetBookstore/DotNetBookstore.csproj
+   ```
+
+7. You should see output ending with `Done.` — all tables are now created in Azure SQL.
+
+#### Option B — Automatic Migrations in Program.cs
+
+You can add a few lines to `Program.cs` to apply pending migrations automatically when the app starts. This is convenient but **use it only for development/learning** — in a real production app this approach can be dangerous if multiple instances start simultaneously.
+
+```csharp
+// Add this block in Program.cs AFTER builder.Build() and BEFORE app.Run()
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+    db.Database.Migrate(); // Applies any pending migrations on startup
+}
+```
+
+After adding this, deploy the app. On first request the app will run migrations automatically.
+
+---
+
+### Verify the Deployed App (CRUD Testing)
+
+After deployment and migrations, follow these steps to confirm the live app is fully functional:
+
+#### 1 — Confirm the App Loads
+
+- Navigate to `https://<your-app-name>.azurewebsites.net`
+- The home page with the hero section, Best Sellers, and Featured Books should appear.
+- If you see an error page, check: (a) connection string is correct, (b) migrations were applied, (c) `ASPNETCORE_ENVIRONMENT` is set to `Production`.
+
+#### 2 — Register a User Account
+
+- Click **Register** in the navbar → fill in an email and password → click **Register**.
+- You should be redirected and logged in (the navbar shows your email).
+
+> **Note:** The app has `RequireConfirmedAccount = true`. If you see a "confirm your email" message and have no email sender configured, temporarily set `RequireConfirmedAccount = false` in `Program.cs` for testing, then redeploy.
+
+#### 3 — Test Categories CRUD
+
+| Operation | Steps | Expected Result |
+| --- | --- | --- |
+| **Create** | Click **Categories** → **Create New** → enter a name → **Create** | New category appears in the grid |
+| **Read** | Click **Details** on any category | Details card shows correctly |
+| **Update** | Click **Edit** on a category → change the name → **Save** | Updated name appears in the grid |
+| **Delete** | Click **Delete** on a category → **Delete Permanently** | Category removed from the grid |
+
+#### 4 — Test Books CRUD
+
+| Operation | Steps | Expected Result |
+| --- | --- | --- |
+| **Create** | Click **Books** → **Create New** → fill in author, title, price, select a category, optionally upload a cover image → **Create** | New book card appears in the grid with cover or placeholder |
+| **Read** | Click **Details** on any book | Two-column card with cover image and metadata |
+| **Update** | Click **Edit** → change a field, optionally replace or remove the cover image → **Save** | Changes reflected in the grid |
+| **Delete** | Click **Delete** → **Delete Permanently** | Book removed; associated image file deleted from storage |
+
+#### 5 — Verify File Upload (Cover Images)
+
+- Create a book and upload a PNG or JPEG cover image.
+- After saving, the book card should show the uploaded image.
+- The file is saved to `wwwroot/img/books/` on the App Service file system (persists within the same instance but is **not shared** across scale-out instances — for a production-grade solution use Azure Blob Storage).
+
+---
+
+### Azure Deployment: Key Considerations
+
+#### Cold Start on Free Tier
+
+The **Free (F1)** tier unloads apps after 20 minutes of inactivity. The next request can take 10–30 seconds while the app reloads (this is called a **cold start**). For a course project this is usually acceptable.  
+To eliminate cold starts, upgrade to **Basic (B1)** or higher and enable **Always On** under **Settings** → **Configuration** → **General settings**.
+
+#### Uploaded Images and Scale-Out
+
+Book cover images are saved to `wwwroot/img/books/` on the local file system of the App Service instance. On the Free and Basic tiers (single instance) this works fine. If you ever scale out to multiple instances, images on one instance will not be visible to requests served by another. For a scalable production app, replace the file upload code with **Azure Blob Storage**. This is outside the scope of the course but is the correct next step.
+
+#### Connection String Security
+
+- **Never commit real connection strings to source control.** Use Azure App Service environment variables (as described above) or [Azure Key Vault](https://learn.microsoft.com/en-us/azure/key-vault/) for production secrets.
+- The local `appsettings.json` and `appsettings.Development.json` files are listed in `.gitignore` and should never be pushed.
+
+#### Firewall Rules for Azure SQL
+
+If you want to connect to the Azure SQL Database from your local machine (e.g., to run `dotnet ef database update` locally against the live database), you need to allow your IP:
+
+1. Azure Portal → SQL Server resource → **Security** → **Networking**.
+2. Under **Firewall rules**, click **Add your client IPv4 address**.
+3. Click **Save**.
+
+#### Summary of Azure Resources Created
+
+| Resource | Name example | Purpose |
+| --- | --- | --- |
+| Resource Group | `bookstore-rg` | Logical container for all resources |
+| App Service Plan | `bookstore-plan` | Defines compute tier and region |
+| App Service (Web App) | `dotnetbookstore-yourname` | Hosts the ASP.NET Core MVC app |
+| SQL Server | `bookstore-sqlserver-yourname` | Logical SQL Server instance |
+| SQL Database | `dotnetbookstore-db` | Stores all app data |
 
 ---
 
