@@ -78,21 +78,21 @@ Every source file in this repository has been annotated with two layers of purpo
 | `Models/ErrorViewModel.cs` | ViewModel vs. entity, expression-bodied property (`=>`), nullable reference types |
 | `Controllers/HomeController.cs` | MVC controller anatomy, action methods, `IActionResult`, `return View()`, `[ResponseCache]` |
 | `Controllers/CategoriesController.cs` | Full CRUD HTTP mapping, `async`/`await`, `[HttpPost]`, `[ValidateAntiForgeryToken]`, `[Bind]`, `ModelState.IsValid`, `DbUpdateConcurrencyException`, PRG pattern |
-| `Controllers/BooksController.cs` | All of the above **plus**: eager loading with `.Include()`, `SelectList` + `ViewBag`, repopulating dropdowns on validation failure, the 10 numbered post-scaffolding fixes; `IFormFile` file upload, `IWebHostEnvironment.WebRootPath`, GUID filename strategy, `UploadImage()` / `DeleteImage()` helpers, preserving existing image on edit, deleting orphaned files on delete |
+| `Controllers/BooksController.cs` | All of the above **plus**: eager loading with `.Include()`, `SelectList` + `ViewBag`, repopulating dropdowns on validation failure, the 11 numbered post-scaffolding fixes; `IFormFile` file upload, `IWebHostEnvironment.WebRootPath`, GUID filename strategy, `UploadImage()` / `DeleteImage()` helpers, preserving existing image on edit, deleting orphaned files on delete, `bool deleteImage` parameter for explicit cover removal |
 | `Views/Shared/_Layout.cshtml` | Master layout template, `@RenderBody()`, `@RenderSectionAsync`, TempData flash messages, active nav link detection, `asp-append-version` cache busting |
 | `Views/Shared/_LoginPartial.cshtml` | Partial views, `@inject` in Razor, `SignInManager`, logout as a POST request (CSRF prevention) |
 | `Views/Shared/_ValidationScriptsPartial.cshtml` | Client-side vs. server-side validation, jQuery Validate, unobtrusive validation bridge |
 | `Views/Shared/Error.cshtml` | `@model` directive, ViewModel in a view, production vs. development error pages |
 | `Views/_ViewImports.cshtml` | Global `@using` namespaces, `@addTagHelper`, Tag Helper overview |
 | `Views/_ViewStart.cshtml` | `_ViewStart` implicit hook, setting the default layout, per-view overrides |
-| `Views/Home/Index.cshtml` | Razor code blocks, `@*...*@` server-side comments, `asp-controller`/`asp-action`, Bootstrap grid, responsive utilities |
+| `Views/Home/Index.cshtml` | Razor code blocks, `@*...*@` server-side comments, `asp-controller`/`asp-action`/`asp-route-id`, Bootstrap grid, responsive utilities; anonymous-type mock arrays (`new[] { new { … } }`), `@foreach` rendering, custom card classes for bestsellers and featured books |
 | `Views/Books/Index.cshtml` | Strongly-typed `@model`, `.ToList()` to avoid double-enumeration, `@foreach`, conditional rendering, `asp-route-id`, empty state UX |
 | `Views/Books/Create.cshtml` | `asp-action` on `<form>`, `enctype="multipart/form-data"` for file upload, `<input type="file">` with `accept`, `asp-for` on labels and text inputs, `asp-validation-for`, `asp-items` + `ViewBag` dropdown, FileReader API live preview IIFE, `@section Scripts` |
-| `Views/Books/Edit.cshtml` | Hidden `BookId` field, `enctype="multipart/form-data"`, existing cover thumbnail with `~/img/books/` path, file input to replace image, "leave empty to keep" hint, FileReader live preview for new selection, pre-populated inputs, category pre-selection |
+| `Views/Books/Edit.cshtml` | Hidden `BookId` field, `enctype="multipart/form-data"`, existing cover thumbnail with `~/img/books/` path, file input to replace image, **"Remove current cover image" checkbox** (`name="deleteImage" value="true"`), FileReader live preview for new selection, JS that dims thumbnail on checkbox check and auto-unchecks on new file selection, pre-populated inputs, category pre-selection |
 | `Views/Books/Details.cshtml` | Read-only view, `@Html.DisplayFor`, `<dl>` definition list, null-conditional `?.`, two-column Bootstrap layout |
 | `Views/Books/Delete.cshtml` | Two-step GET→POST delete, hidden PK field, danger styling conventions, Cancel as a safe link |
 | `Views/Categories/*.cshtml` | All of the above patterns applied to a simpler, one-field entity — ideal for seeing the concepts in their most direct form |
-| `wwwroot/css/site.css` | CSS custom properties (design tokens), Bootstrap override strategy, transitions, responsive `@media` queries, `object-fit: cover`, accessibility focus rings |
+| `wwwroot/css/site.css` | CSS custom properties (design tokens), Bootstrap override strategy, transitions, responsive `@media` queries, `object-fit: cover`, accessibility focus rings; new sections 18–20 cover bestseller amber cards, featured indigo cards with `backdrop-filter` glass badge, and the `.home-section-divider` gradient rule |
 | `wwwroot/js/site.js` | `wwwroot` as the web root, script load order, `DOMContentLoaded`, separation of concerns, commented auto-dismiss example |
 
 ### How to get the most out of the comments
@@ -127,7 +127,7 @@ Every source file in this repository has been annotated with two layers of purpo
 
 - **List** all books in a **responsive card grid** (1 → 2 → 3 → 4 columns) with cover art, category badge, Mature Content badge, author, title, and price
 - **Create** a new book with author, title, cover image file upload (PNG/JPEG; live FileReader preview), price, mature content toggle, and category dropdown
-- **Edit** an existing book — existing cover thumbnail shown; upload a new file to replace it (leave empty to keep current); category dropdown pre-selects the current value
+- **Edit** an existing book — existing cover thumbnail shown; upload a new file to replace it, or check **"Remove current cover image"** to delete it (leave both empty to keep current); JS dims the thumbnail while the delete checkbox is active and auto-unchecks it if a new file is selected; category dropdown pre-selects the current value
 - **View Details** — two-column card layout with full-height cover image on the left and metadata on the right
 - **Delete** — danger-themed confirmation card with a cover thumbnail and full book summary; the associated image file is removed from disk on confirmation
 
@@ -147,6 +147,7 @@ Every source file in this repository has been annotated with two layers of purpo
 - **TempData toast area** in the layout — controllers can set `TempData["SuccessMessage"]` or `TempData["ErrorMessage"]` for dismissible Bootstrap alerts
 - **Empty states** on index pages — icon, message, and CTA when no records exist
 - **Live cover preview (FileReader API)** — on Create, when a file is selected in the picker the FileReader API reads the bytes locally and shows a preview before the form is submitted; on Edit, the existing cover thumbnail is shown server-side and a new preview appears only when a replacement file is chosen
+- **Delete cover image** — a "Remove current cover image" checkbox in the Edit form lets users permanently delete the current cover; the controller deletes the file from disk and sets `Image = null`; JavaScript dims the thumbnail as feedback while the checkbox is active
 - **Graceful image fallback** — gradient placeholder with a book icon is always rendered behind cover images; shows through on `onerror` with no JS required
 
 ---
@@ -180,15 +181,18 @@ A set of CSS custom properties drives the entire visual theme:
 ### Home Page (`Home/Index.cshtml`)
 
 - **Hero section** — full-width indigo/purple gradient card with an SVG dot-pattern texture overlay, large display heading with amber accent, lead text, and two CTA buttons (Browse Books / Categories).
-- **Feature cards** — three equal-height cards (Books, Categories, Account) with lift-on-hover effect, coloured icon badges, and action buttons.
-- **Tech strip** — a secondary info band showing Identity, EF Core, and Bootstrap with icons.
+- **Best Sellers section** — three amber/gold-themed cards with circular rank badges (#1, #2, #3) overlaid on the cover area, amber top-border accent, genre pill, title/author, price, and a "View Book" CTA. Mock data (Book IDs 1–3) replaces a real DB query; inline comments explain the production replacement path.
+- **Featured Books section** — three indigo-themed cards with frosted-glass curator badges ("Editor's Choice", "Course Pick", "Staff Pick") pinned to the top-right of the cover, indigo left-border accent, and the same metadata layout. Mock data (Book IDs 4–6).
+- **Section dividers** — `.home-section-divider` — a decorative 1 px rule with opacity fade at both edges, separating the three content sections.
+- **Feature cards** — three equal-height navigation cards (Books, Categories, Account) with lift-on-hover effect, coloured icon badges, and action buttons; heading now includes a compass Bootstrap Icon.
+- **Tech strip** — expanded to four items: Identity, EF Core, Bootstrap 5, and **File Upload** (GUID-based cover images), using a 2 × 2 grid on mobile and 4-column row on desktop.
 
 ### Books Views
 
 | View | Design |
 |---|---|
 | `Index` | Responsive card grid; cover art with gradient-placeholder fallback behind image; category + Mature badges; price in green; icon action buttons in card footer |
-| `Create` / `Edit` | Centred card form; `input-group` with Bootstrap Icons; small uppercase muted labels; `type="file"` cover image picker with FileReader live preview; Edit shows existing cover thumbnail; Mature Content toggle in a highlighted box; `divider-gradient` separator before action buttons |
+| `Create` / `Edit` | Centred card form; `input-group` with Bootstrap Icons; small uppercase muted labels; `type="file"` cover image picker with FileReader live preview; Edit shows existing cover thumbnail + **"Remove current cover image" checkbox** (dims thumbnail via JS while active, auto-unchecks on new file selection); Mature Content toggle in a highlighted box; `divider-gradient` separator before action buttons |
 | `Details` | Two-column card — full-height cover (or gradient placeholder) on left, metadata on right; category and rating badges; price in large green text |
 | `Delete` | Red-bordered card with cover thumbnail, two-column summary; danger alert banner with triangle icon; "Delete Permanently" button |
 
@@ -477,7 +481,7 @@ dotnet user-secrets set "ConnectionStrings:DefaultConnection" "your-connection-s
 
 | Route | Description |
 |---|---|
-| `/` | Home page (hero + feature cards + tech strip) |
+| `/` | Home page (hero + best sellers + featured books + feature cards + tech strip) |
 | `/Home/Privacy` | Privacy policy page |
 | `/Books` | Books card grid |
 | `/Books/Create` | Add a new book (with live cover preview) |
@@ -516,6 +520,7 @@ The `Docs/` folder contains detailed developer guides:
 | Bootstrap 5 UI pass | Full overhaul of all 14 views: dark navbar with Bootstrap Icons 1.11.3 (CDN), hero home page with feature cards, hover tables with image thumbnails and colour badges, card-wrapped forms with `input-group` icons, `form-switch` for boolean fields, danger confirmation cards, styled error page, sticky dark footer |
 | **Modern Design System** | Complete redesign of all 15 views and `site.css`: indigo/purple brand gradient replacing plain dark; CSS custom property token system (`--brand-gradient`, `--card-shadow`, `--radius-card`, etc.); Books and Categories index pages converted from tables to responsive card grids; live cover image preview (JS) in Create/Edit forms; layered gradient placeholder + real image on all cover slots with silent `onerror` fallback; two-column Details view (cover + metadata); active nav link via server-side controller detection; TempData toast area in layout; empty states with icon + CTA; page-header component with left accent border; `divider-gradient` separator; lift-on-hover transitions on all interactive cards and buttons |
 | **File Upload** | Cover image upload via `multipart/form-data` `<input type="file">` replacing the previous URL text field. Files saved to `wwwroot/img/books/` with GUID-prefixed names to prevent collisions. `IWebHostEnvironment` injected into `BooksController` for `WebRootPath` resolution. `UploadImage()` helper writes the file; `DeleteImage()` helper removes orphaned files on cover replace or book delete. Edit form shows the existing thumbnail and preserves it when no new file is chosen. FileReader API drives the in-browser live preview on Create and Edit without a round-trip. `app.UseStaticFiles()` added to `Program.cs` so uploaded runtime files are served from `wwwroot/`. |
+| **Delete Cover Image + Home Page Enhancements** | **Edit form:** "Remove current cover image" checkbox (`name="deleteImage" value="true"`) added to Edit.cshtml. Controller (Step 11 fix) accepts `bool deleteImage = false`; when true and no replacement file is uploaded, the old cover is deleted from disk and `Image` set to `null`. JS feedback: thumbnail dims (`opacity:0.3` + `grayscale(100%)`) when the checkbox is checked; auto-unchecks and restores the thumbnail when the user selects a new file (upload wins). **Home page:** two new sections added — *Best Sellers* (amber/gold theme, rank-badge overlay, `Book IDs 1–3` mock data) and *Featured Books* (indigo theme, glass-morphism curator badge, `Book IDs 4–6` mock data). Inline comments guide students on replacing mock data with a real DB query. `site.css` extended with sections 18–20: `.bestseller-card`, `.bestseller-rank-badge`, `.featured-card`, `.featured-label-badge`, `.home-section-divider`. Tech strip expanded from 3 to 4 icons (added File Upload). |
 
 ---
 

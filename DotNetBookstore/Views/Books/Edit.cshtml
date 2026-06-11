@@ -27,8 +27,9 @@
  *                                   ~/img/books/@Model.Image — the tilde resolves to
  *                                   the application root path (wwwroot/).
  *  5. enctype="multipart/form-data" — required for file upload; same as Create.
- *  6. Leave-empty-to-keep logic   — if the user submits without selecting a new file,
- *                                   the controller preserves the existing Image filename
+ *  6. Leave-empty-to-keep logic   — if the user submits without selecting a new file
+ *                                   AND without checking the delete checkbox, the
+ *                                   controller preserves the existing Image filename
  *                                   (read from the DB with AsNoTracking) so the cover
  *                                   is not accidentally wiped when editing other fields.
  *  7. FileReader API (JS)         — same as Create: reads the newly-selected file in
@@ -37,6 +38,12 @@
  *                                   The key differences are: page title, hidden BookId
  *                                   field, existing image thumbnail, file-input hint
  *                                   text, and the submit button label.
+ *  9. Delete cover image checkbox — name="deleteImage" posts "true" to the Edit POST
+ *                                   action when checked. The controller (Step 11 fix)
+ *                                   deletes the file from disk and sets Image = null.
+ *                                   JS dims the thumbnail while checked and auto-
+ *                                   unchecks it if the user then selects a new file
+ *                                   (new upload always takes priority over deletion).
  * ============================================================================
  *@
 
@@ -115,7 +122,12 @@
                         *@
                         @if (!string.IsNullOrWhiteSpace(Model?.Image))
                         {
-                            <div class="mb-2 d-flex align-items-center gap-3">
+                            @*
+                               id="existingThumbnailRow" — targeted by JS to dim/restore
+                               the thumbnail when the delete checkbox is toggled.
+                            *@
+                            <div id="existingThumbnailRow" class="mb-2 d-flex align-items-center gap-3"
+                                 style="transition: opacity .25s ease, filter .25s ease;">
                                 <div class="d-inline-block rounded-2 overflow-hidden shadow-sm flex-shrink-0"
                                      style="width:80px;height:120px;background:var(--brand-gradient-light)">
                                     <img src="~/img/books/@Model.Image" alt="Current cover"
@@ -124,7 +136,30 @@
                                 </div>
                                 <div class="text-muted small">
                                     <i class="bi bi-check-circle text-success me-1"></i>Current cover image saved.
-                                    <br />Upload a new file below to replace it.
+                                    <br />Upload a new file below to replace it, or
+                                    <br />check the box below to remove it entirely.
+                                </div>
+                            </div>
+
+                            @*
+                               Delete-image checkbox — name="deleteImage" value="true":
+                               An unchecked HTML checkbox is NOT submitted to the server, so
+                               when left unchecked the controller parameter defaults to false
+                               (preserve existing). When checked, "deleteImage=true" is posted
+                               and the controller deletes the file from disk (Step 11 fix).
+                               JS dims the thumbnail while checked as a visual confirmation;
+                               it auto-unchecks if the user selects a new file (upload wins).
+                            *@
+                            <div class="form-check mt-1 mb-2 p-2 rounded-2"
+                                 style="background:rgba(220,38,38,.05); border:1px solid rgba(220,38,38,.15);">
+                                <input type="checkbox" class="form-check-input" id="deleteImageCheck"
+                                       name="deleteImage" value="true" />
+                                <label class="form-check-label text-danger fw-semibold small" for="deleteImageCheck">
+                                    <i class="bi bi-trash me-1"></i>Remove current cover image
+                                </label>
+                                <div class="text-muted" style="font-size:.72rem; margin-top:.15rem;">
+                                    Check this box and save to delete the cover permanently.
+                                    Uploading a new file below will override this checkbox.
                                 </div>
                             </div>
                         }
@@ -218,39 +253,85 @@
     @{ await Html.RenderPartialAsync("_ValidationScriptsPartial"); }
     <script>
         /*
-         * LIVE COVER IMAGE PREVIEW (FileReader API)
-         * ──────────────────────────────────────────
-         * Same FileReader-based preview as Books/Create.cshtml.
+         * EDIT-PAGE IMAGE SCRIPTS
+         * ────────────────────────
+         * Two independent behaviours are wired up here:
          *
-         * In Edit mode there is already an existing thumbnail rendered above the
-         * file input. This preview below is ONLY for the NEWLY selected file —
-         * it shows what the cover will look like if the user saves the upload.
-         * If the user clears the selection, this preview is hidden again and the
-         * existing thumbnail (rendered server-side) remains visible.
+         * 1. LIVE COVER PREVIEW (FileReader API)
+         *    Same as Books/Create.cshtml. When the user picks a new file in the
+         *    file input the browser reads it locally (no network round-trip) and
+         *    shows the image in the #imagePreviewWrapper div so the user can
+         *    confirm it looks right before saving.
+         *
+         * 2. DELETE-IMAGE CHECKBOX FEEDBACK
+         *    When the "Remove current cover image" checkbox (#deleteImageCheck) is
+         *    checked, the existing thumbnail row is dimmed (opacity + greyscale)
+         *    to give visual confirmation that the image will be removed on save.
+         *    If the user then selects a new file, the checkbox is automatically
+         *    unchecked and the thumbnail restored — because a new upload always
+         *    takes priority over the delete flag in the controller (Step 11).
          */
         (function () {
-            var input   = document.getElementById('imageInput');
-            var wrapper = document.getElementById('imagePreviewWrapper');
-            var preview = document.getElementById('imagePreview');
-            if (!input) return;
+            var input       = document.getElementById('imageInput');
+            var wrapper     = document.getElementById('imagePreviewWrapper');
+            var preview     = document.getElementById('imagePreview');
+            var deleteCheck = document.getElementById('deleteImageCheck');
+            var thumbRow    = document.getElementById('existingThumbnailRow');
 
-            input.addEventListener('change', function () {
-                var file = input.files && input.files[0];
+            /* ── 1. Live preview ─────────────────────────────────────────── */
+            if (input) {
+                input.addEventListener('change', function () {
+                    var file = input.files && input.files[0];
 
-                if (!file) {
-                    // No file selected (or selection cleared) — hide new preview
-                    wrapper.classList.add('d-none');
-                    return;
+                    if (!file) {
+                        // No file selected (selection cleared) — hide new preview
+                        if (wrapper) wrapper.classList.add('d-none');
+                        return;
+                    }
+
+                    // If the user selects a new file, the delete checkbox no longer
+                    // applies (upload wins) — uncheck it and restore the thumbnail.
+                    if (deleteCheck && deleteCheck.checked) {
+                        deleteCheck.checked = false;
+                        restoreThumbnail();
+                    }
+
+                    // Read the selected file as a base-64 Data URL for inline display
+                    var reader = new FileReader();
+                    reader.onload = function (e) {
+                        if (preview) preview.src = e.target.result;
+                        if (wrapper) wrapper.classList.remove('d-none');
+                    };
+                    reader.readAsDataURL(file);
+                });
+            }
+
+            /* ── 2. Delete-image checkbox feedback ───────────────────────── */
+            if (deleteCheck) {
+                deleteCheck.addEventListener('change', function () {
+                    if (deleteCheck.checked) {
+                        // Dim the existing thumbnail to signal pending deletion
+                        dimThumbnail();
+                    } else {
+                        // Checkbox unchecked — restore the thumbnail to normal
+                        restoreThumbnail();
+                    }
+                });
+            }
+
+            /* Helpers that apply/remove the dim effect on the thumbnail row */
+            function dimThumbnail() {
+                if (thumbRow) {
+                    thumbRow.style.opacity = '0.3';
+                    thumbRow.style.filter  = 'grayscale(100%)';
                 }
-
-                // Read the selected file as a base-64 Data URL for inline display
-                var reader = new FileReader();
-                reader.onload = function (e) {
-                    preview.src = e.target.result;
-                    wrapper.classList.remove('d-none'); // reveal the new preview
-                };
-                reader.readAsDataURL(file);
-            });
+            }
+            function restoreThumbnail() {
+                if (thumbRow) {
+                    thumbRow.style.opacity = '';
+                    thumbRow.style.filter  = '';
+                }
+            }
         })();
     </script>
 }

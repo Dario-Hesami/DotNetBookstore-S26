@@ -53,6 +53,9 @@
  *  Step 8 → Added UploadImage() and DeleteImage() private helpers
  *  Step 9 → Edit POST preserves existing image when no new file is uploaded
  *  Step 10→ Delete POST removes the associated image file from disk
+ *  Step 11→ Edit POST accepts a deleteImage bool; when true (and no new file is
+ *            uploaded) the existing cover is removed from disk and Image is set
+ *            to null — triggered by the "Remove cover image" checkbox in Edit.cshtml
  * ============================================================================
  */
 
@@ -241,18 +244,24 @@ public class BooksController : Controller
     // ── POST: /Books/Edit/5 ───────────────────────────────────────────────────
     // Saves the updated book fields to the database.
     //
-    // FIX (Step 4): Same [Bind] fix as Create POST.
-    // FIX (Step 6): Image excluded from [Bind]; received as IFormFile? Image.
-    // FIX (Step 9): If no new file is uploaded, the existing image filename is
-    //               read from the database (AsNoTracking to avoid tracking conflicts)
-    //               and restored onto the book entity before saving. This prevents
-    //               accidentally wiping the cover image when a user edits other fields.
+    // FIX (Step 4):  Same [Bind] fix as Create POST.
+    // FIX (Step 6):  Image excluded from [Bind]; received as IFormFile? Image.
+    // FIX (Step 9):  If no new file is uploaded, the existing image filename is
+    //                read from the database (AsNoTracking to avoid tracking conflicts)
+    //                and restored onto the book entity before saving. This prevents
+    //                accidentally wiping the cover image when a user edits other fields.
+    // FIX (Step 11): deleteImage bool is posted by the "Remove cover image" checkbox
+    //                in Edit.cshtml. When true and no new file is selected, the old
+    //                cover file is deleted from disk and Image is set to null.
+    //                Priority: new file upload > delete > preserve existing.
     [HttpPost]
     [ValidateAntiForgeryToken]
     // Image is intentionally excluded from [Bind]; it is received as IFormFile below.
+    // deleteImage arrives from the unchecked/checked checkbox; defaults to false when unchecked.
     public async Task<IActionResult> Edit(int? id,
         [Bind("BookId,Author,Title,Price,MatureContent,CategoryId")] Book book,
-        IFormFile? Image)
+        IFormFile? Image,
+        bool deleteImage = false)
     {
         // Route ID must match the hidden BookId field in the form.
         if (id != book.BookId)
@@ -280,7 +289,8 @@ public class BooksController : Controller
             {
                 if (Image != null && Image.Length > 0)
                 {
-                    // A new cover file was uploaded — save it and delete the old one.
+                    // Priority 1: A new cover file was uploaded — save it and delete the old one.
+                    // This takes precedence even if the delete checkbox was also checked.
                     var newFileName = UploadImage(Image);
 
                     // FIX (Step 10): Remove the old image file from disk to avoid
@@ -292,10 +302,21 @@ public class BooksController : Controller
 
                     book.Image = newFileName;
                 }
+                else if (deleteImage)
+                {
+                    // FIX (Step 11): Priority 2 — the "Remove cover image" checkbox was
+                    // checked and no replacement file was uploaded. Delete the old file
+                    // from disk and clear the Image column so the placeholder renders.
+                    if (!string.IsNullOrEmpty(existingImage))
+                    {
+                        DeleteImage(existingImage);
+                    }
+                    book.Image = null;
+                }
                 else
                 {
-                    // No new file uploaded — preserve the existing filename so the
-                    // cover image is not lost when other fields are edited.
+                    // Priority 3: No new file and delete not requested — preserve the
+                    // existing filename so the cover is not lost when editing other fields.
                     book.Image = existingImage;
                 }
 

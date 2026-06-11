@@ -416,3 +416,141 @@ footer a:hover { color: #fbbf24 !important; } /* Brand yellow on hover */
 #imagePreviewWrapper {
   transition: opacity var(--transition-slow);
 }
+
+/* ── 18. Best Sellers Section ──────────────────────────────────────────────────
+   Amber/gold colour scheme used for the Best Sellers cards on the Home page.
+   Key components: section-heading icon badge, card with amber top-border accent,
+   cover area with gradient background, and a circular rank badge overlay. ──────*/
+
+/* Rounded icon badge that appears in the Best Sellers section heading */
+.bestseller-section-icon {
+  width: 3rem;
+  height: 3rem;
+  background: linear-gradient(135deg, #fffbeb, #fde68a);
+  border-radius: .75rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.4rem;
+  color: #d97706;            /* Amber icon colour */
+  flex-shrink: 0;
+}
+
+/* Bestseller card body — amber top border distinguishes it from regular book cards */
+.bestseller-card {
+  border-top: 3px solid #f59e0b !important;
+}
+
+/* Cover placeholder area inside a bestseller card */
+.bestseller-cover-wrapper {
+  height: 180px;
+  background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 60%, #fde68a 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;   /* Required for .bestseller-rank-badge absolute positioning */
+  overflow: hidden;
+}
+
+/* Placeholder book icon inside the bestseller cover — faded amber colour */
+.bestseller-cover-placeholder {
+  font-size: 3.5rem;
+  color: #f59e0b;
+  opacity: .35;
+}
+
+/* Circular rank badge (#1, #2, #3) pinned to the top-left of the cover.
+   Uses position:absolute within the relative .bestseller-cover-wrapper parent. */
+.bestseller-rank-badge {
+  position: absolute;
+  top: .65rem;
+  left: .65rem;
+  width: 2.25rem;
+  height: 2.25rem;
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  color: #fff;
+  font-weight: 800;
+  font-size: 1rem;
+  border-radius: 50%;           /* Perfect circle */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(245,158,11,.5);  /* Amber glow */
+  z-index: 1;
+}
+
+/* ── 19. Featured Books Section ─────────────────────────────────────────────────
+   Indigo/purple colour scheme for the Featured Books cards on the Home page.
+   Uses a left-border stripe (instead of top like bestsellers) plus a label badge
+   pinned to the top-right corner of the cover area. ──────────────────────────── */
+
+/* Rounded icon badge that appears in the Featured Books section heading */
+.featured-section-icon {
+  width: 3rem;
+  height: 3rem;
+  background: var(--brand-gradient-light);
+  border-radius: .75rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.4rem;
+  color: #6366f1;              /* Indigo icon colour */
+  flex-shrink: 0;
+}
+
+/* Featured card — indigo left accent border distinguishes it from bestseller cards */
+.featured-card {
+  border-left: 4px solid #6366f1 !important;
+}
+
+/* Cover placeholder area inside a featured card */
+.featured-cover-wrapper {
+  height: 180px;
+  background: var(--brand-gradient-light);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;   /* Required for .featured-label-badge absolute positioning */
+  overflow: hidden;
+}
+
+/* Placeholder book icon inside the featured cover — soft indigo colour */
+.featured-cover-placeholder {
+  font-size: 3.5rem;
+  color: #818cf8;
+  opacity: .35;
+}
+
+/* Curator badge ("Editor's Choice", etc.) pinned to the top-right of the cover.
+   backdrop-filter adds a glass-morphism blur effect for a modern look. */
+.featured-label-badge {
+  position: absolute;
+  top: .65rem;
+  right: .65rem;
+  font-size: .65rem;
+  font-weight: 700;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  background: rgba(99,102,241,.82);
+  color: #fff;
+  padding: .22rem .6rem;
+  border-radius: .375rem;
+  backdrop-filter: blur(4px);   /* Frosted-glass effect — needs a supported browser */
+  z-index: 1;
+}
+
+/* ── 20. Home Page Section Divider ─────────────────────────────────────────────
+   A decorative horizontal rule between home page sections. Fades in and out at
+   both edges so it blends softly into the page background. ─────────────────────*/
+.home-section-divider {
+  height: 1px;
+  background: linear-gradient(
+    to right,
+    transparent,
+    rgba(99,102,241,.18) 30%,
+    rgba(99,102,241,.18) 70%,
+    transparent
+  );
+  border: none;
+  margin: 2.5rem 0;
+}
