@@ -1125,4 +1125,4 @@ The `Docs/` folder contains detailed developer guides:
 
 ---
 
-Built with Georgian College · COMP2084 Summer 2026
+Built with love - Georgian College · COMP2084 Summer 2026
