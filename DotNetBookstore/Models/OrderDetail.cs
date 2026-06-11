@@ -1,51 +1,81 @@
-﻿using Microsoft.AspNetCore.Mvc.ModelBinding.Validation;
+/*
+ * ============================================================================
+ * DotNet Bookstore — In-Class ASP.NET Core MVC Project
+ * Course: COMP2084 | Georgian College | Summer 2026
+ * Instructor: Dario Hesami
+ * ============================================================================
+ *
+ * FILE:    Models/OrderDetail.cs
+ * PURPOSE: Represents one line item within an order — which specific book was
+ *          purchased, how many copies, and at what unit price.
+ *
+ *          This is the "many" side of TWO relationships:
+ *            - Order  → OrderDetails (one order has many detail lines)
+ *            - Book   → OrderDetails (one book can appear in many orders)
+ *
+ * KEY CONCEPTS FOR STUDENTS:
+ *  1. Junction / bridge table   — OrderDetail sits between Orders and Books.
+ *                                 It records the ASSOCIATION between a specific
+ *                                 order and a specific book, enriched with
+ *                                 context data (Quantity, Price).
+ *  2. Two FKs in one model      — OrderId links to Orders; BookId links to Books.
+ *                                 EF Core creates two foreign key constraints in
+ *                                 the database from these two properties.
+ *  3. Price capture             — same principle as CartItem.Price: we store the
+ *                                 book's price at the time of purchase, not a
+ *                                 live reference, so historical order totals stay
+ *                                 accurate even if book prices change later.
+ *  4. [ValidateNever]           — applied to navigation properties so the model
+ *                                 binder does not expect them to be submitted
+ *                                 as form fields (EF Core resolves them from FK).
+ * ============================================================================
+ */
+
+using Microsoft.AspNetCore.Mvc.ModelBinding.Validation;
 using System.ComponentModel.DataAnnotations;
 
 namespace DotNetBookstore.Models
 {
     public class OrderDetail
     {
-        // PK
-        // In a real application, this property would typically be used as the primary key (pk) in a database table for order details, and it would be automatically generated when a new order detail is created. This means that when you add a new order detail to the database, the OrderDetailId would be assigned a unique value (usually an incrementing integer) by the database system, ensuring that each order detail can be uniquely identified.
-        public int OrderDetailId
-        {
-            get; set;
-        }
+        // ── Primary Key ──────────────────────────────────────────────────────
+        // Auto-incremented; uniquely identifies each line item across all orders.
+        public int OrderDetailId { get; set; }
 
+        // ── Quantity ─────────────────────────────────────────────────────────
+        // Number of copies of this book in the order. At least 1 is required
+        // (you can't place an order for 0 books).
         [Required]
-        public int Quantity
-        {
-            get; set;
-        }
+        public int Quantity { get; set; }
 
+        // ── Price (captured at time of purchase) ─────────────────────────────
+        // Unit price of the book at the time the order was placed.
+        // Stored here so the order history is accurate even if the book's
+        // current price in the Books table changes later.
         [Required]
-        public decimal Price
-        {
-            get; set;
-        }
+        public decimal Price { get; set; }
 
-        // FK: must refer to an order (mandatory)
-        // The OrderId property is an integer that serves as a foreign key (FK) to the Order class. It is marked as [Required], which means that every order detail must be associated with an order. This property will typically hold the unique identifier of the order that this detail belongs to, ensuring that each order detail is associated with a valid order in the database.
+        // ── Foreign Key: OrderId ──────────────────────────────────────────────
+        // Points to the parent Order row. Every line item MUST belong to an
+        // order; no orphaned detail rows are allowed (NOT NULL in the database).
         [Required]
-        public int OrderId
-        {
-            get; set;
-        }
+        public int OrderId { get; set; }
 
-        // Navigation property: each detail is for one order (mandatory from the detail side)
-        // The Order property is a navigation property that allows access to the related Order object. It is marked as non-nullable (using the null-forgiving operator !) to indicate that it must always have a value. This property enables navigation from an order detail to its associated order, facilitating data access and manipulation in the application.
+        // ── Navigation Property: Order ────────────────────────────────────────
+        // Allows you to navigate from a detail line back to its parent order,
+        // e.g., detail.Order.OrderDate. EF Core populates it via .Include().
+        // null! → will never actually be null once loaded by EF Core.
         public Order Order { get; set; } = null!;
 
-        // FK: must refer to a book (mandatory)
-        // The BookId property is an integer that serves as a foreign key (FK) to the Book class. It is marked as [Required], which means that every order detail must be associated with a book. This property will typically hold the unique identifier of the book that this detail belongs to, ensuring that each order detail is associated with a valid book in the database.
+        // ── Foreign Key: BookId ───────────────────────────────────────────────
+        // Points to the Book that was purchased in this line item.
         [Required]
-        public int BookId
-        {
-            get; set;
-        }
+        public int BookId { get; set; }
 
-        // Navigation property: each detail is for one book (mandatory from the detail side)
-        // The Book property is a navigation property that allows access to the related Book object. It is marked as non-nullable (using the null-forgiving operator !) to indicate that it must always have a value. This property enables navigation from an order detail to its associated book, facilitating data access and manipulation in the application.
+        // ── Navigation Property: Book ─────────────────────────────────────────
+        // Allows access to full book details (title, author, image) on the order
+        // confirmation and history pages via .Include(d => d.Book).
+        // [ValidateNever] skips validation for this object during form binding.
         [ValidateNever]
         public Book Book { get; set; } = null!;
     }

@@ -1,25 +1,71 @@
+@*
+ * ============================================================================
+ * DotNet Bookstore — In-Class ASP.NET Core MVC Project
+ * Course: COMP2084 | Georgian College | Summer 2026
+ * Instructor: Dario Hesami
+ * ============================================================================
+ *
+ * FILE:    Views/Home/Index.cshtml
+ * PURPOSE: The application's landing page. Contains no database data —
+ *          it is a pure marketing/navigation page with a hero banner,
+ *          feature cards, and a quick-info strip.
+ *
+ * KEY CONCEPTS FOR STUDENTS:
+ *  1. @{ } code block    — Razor C# code block. ViewData["Title"] is read by
+ *                          _Layout.cshtml to set the browser tab title.
+ *  2. @* ... *@          — Razor comment syntax. These are server-side comments
+ *                          that are NEVER sent to the browser (unlike <!-- ... -->
+ *                          HTML comments which ARE visible in page source).
+ *  3. asp-controller /   — Tag Helpers that generate href URLs based on the
+ *     asp-action           MVC routing table. Safer than hard-coding strings
+ *                          because they update automatically if routes change.
+ *  4. Bootstrap 5 grid   — row/col-* classes create a responsive CSS Grid layout.
+ *                          col-lg-7 = 7/12 columns on large screens;
+ *                          col-lg-5 = 5/12 columns.
+ *  5. Bootstrap utilities — classes like d-flex, gap-3, flex-wrap, text-center
+ *                          provide layout/spacing without writing custom CSS.
+ *  6. Bootstrap Icons    — bi bi-* classes render SVG icons from the icon font
+ *                          loaded in _Layout.cshtml.
+ *  7. d-none d-lg-flex   — Bootstrap visibility classes: hidden by default
+ *                          (d-none), visible only on large+ screens (d-lg-flex).
+ *                          Creates a responsive hero image that disappears on mobile.
+ * ============================================================================
+ *@
+
 @{
+    @* Set the browser tab / <title> for this page *@
     ViewData["Title"] = "Home Page";
 }
 
-@* ── Hero ───────────────────────────────────────────────────────── *@
+@* ── Hero Section ─────────────────────────────────────────────────────────── *@
+@* The hero-section CSS class in site.css applies the brand gradient background.
+   p-4 p-md-5 adds responsive padding (smaller on mobile, larger on desktop). *@
 <div class="hero-section p-4 p-md-5 mb-5 text-white">
     <div class="row align-items-center g-4 py-2">
+
+        @* Left column: headline + call-to-action buttons *@
         <div class="col-lg-7">
             <div class="mb-3">
+                @* Bootstrap pill badge — identifies the tech stack at a glance *@
                 <span class="badge bg-warning text-dark fw-semibold px-3 py-2 rounded-pill">
                     <i class="bi bi-stars me-1"></i>ASP.NET Core MVC &middot; .NET 10
                 </span>
             </div>
+
+            @* Hero headline with a highlighted accent word in brand yellow *@
             <h1 class="display-4 fw-bold mb-3" style="line-height:1.1">
                 Your Digital<br>
                 <span style="color:#fbbf24">Book Catalogue</span>
             </h1>
+
             <p class="lead mb-4" style="opacity:.82; max-width:480px">
                 Discover, manage, and explore books across a wide range of categories.
                 A modern catalogue built with ASP.NET Core MVC and .NET 10.
             </p>
+
+            @* Call-to-action buttons: primary (Browse Books) and secondary (Categories) *@
             <div class="d-flex gap-3 flex-wrap">
+                @* asp-controller/asp-action generate: href="/Books" *@
                 <a asp-controller="Books" asp-action="Index"
                    class="btn btn-warning btn-lg px-5 fw-semibold shadow-sm">
                     <i class="bi bi-journal-bookmark me-2"></i>Browse Books
@@ -30,20 +76,27 @@
                 </a>
             </div>
         </div>
+
+        @* Right column: large decorative icon — hidden on small screens (d-none d-lg-flex) *@
         <div class="col-lg-5 text-center d-none d-lg-flex align-items-center justify-content-center">
+            @* clamp() CSS function: font-size scales between 6rem and 10rem based on viewport *@
             <i class="bi bi-book-half"
                style="font-size:clamp(6rem,14vw,10rem); opacity:.1; color:#fff; line-height:1;"></i>
         </div>
     </div>
 </div>
 
-@* ── Feature cards ───────────────────────────────────────────────── *@
+@* ── Feature Cards ─────────────────────────────────────────────────────────── *@
+@* row-cols-1 = 1 column on mobile, row-cols-md-3 = 3 columns on medium+ screens *@
 <h2 class="section-title fs-4 fw-bold mb-4">Explore the Bookstore</h2>
 <div class="row row-cols-1 row-cols-md-3 g-4 mb-5">
 
+    @* Card 1: Book Catalogue *@
     <div class="col">
+        @* card-hover in site.css adds a translateY(-5px) lift effect on hover *@
         <div class="card card-hover h-100 border-0">
             <div class="card-body p-4">
+                @* stat-icon: a rounded icon badge defined in site.css *@
                 <div class="stat-icon bg-primary bg-opacity-10 text-primary mb-3">
                     <i class="bi bi-journal-bookmark"></i>
                 </div>
@@ -61,6 +114,7 @@
         </div>
     </div>
 
+    @* Card 2: Categories *@
     <div class="col">
         <div class="card card-hover h-100 border-0">
             <div class="card-body p-4">
@@ -81,6 +135,7 @@
         </div>
     </div>
 
+    @* Card 3: Account Management *@
     <div class="col">
         <div class="card card-hover h-100 border-0">
             <div class="card-body p-4">
@@ -94,6 +149,7 @@
                 </p>
             </div>
             <div class="card-footer bg-transparent border-0 pb-4 px-4">
+                @* asp-area="Identity" routes to the Identity area's Login Razor Page *@
                 <a asp-area="Identity" asp-page="/Account/Login" class="btn btn-warning btn-sm px-3">
                     <i class="bi bi-arrow-right me-1"></i>Get Started
                 </a>
@@ -103,10 +159,12 @@
 
 </div>
 
-@* ── Quick info strip ─────────────────────────────────────────────── *@
+@* ── Quick Info Strip ─────────────────────────────────────────────────────── *@
+@* A subtle gradient card highlighting the key technologies used in the project *@
 <div class="card border-0" style="background:linear-gradient(to right,#eef2ff,#f5f3ff)">
     <div class="card-body p-4">
         <div class="row g-4 text-center">
+            @* col-4 = 4/12 columns = 3 equal columns across *@
             <div class="col-4">
                 <i class="bi bi-shield-check text-primary fs-3 d-block mb-1"></i>
                 <div class="fw-semibold small">Secure Auth</div>

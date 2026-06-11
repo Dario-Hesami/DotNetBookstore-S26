@@ -1,7 +1,45 @@
+/*
+ * ============================================================================
+ * DotNet Bookstore — In-Class ASP.NET Core MVC Project
+ * Course: COMP2084 | Georgian College | Summer 2026
+ * Instructor: Dario Hesami
+ * ============================================================================
+ *
+ * FILE:    Controllers/BooksController.cs
+ * PURPOSE: Implements full CRUD (Create, Read, Update, Delete) for the Book
+ *          entity. Because a Book belongs to a Category (foreign key), this
+ *          controller is more complex than CategoriesController — it must:
+ *            • Eagerly load the related Category for display (.Include())
+ *            • Populate a dropdown list for the Category selector (SelectList)
+ *            • Re-populate the dropdown on validation failure
+ *
+ * WHAT STUDENTS LEARN HERE (beyond CategoriesController basics):
+ *  1. Eager loading (.Include)  — explicitly load a related entity in ONE query
+ *                                 using a SQL JOIN, rather than issuing a separate
+ *                                 SELECT for each book's category.
+ *  2. SelectList + ViewBag      — how to pass a dropdown data source from the
+ *                                 controller to the view for a <select> element.
+ *  3. [Bind] without navigation — always exclude navigation properties (Category,
+ *                                 CartItems, OrderDetails) from [Bind] to prevent
+ *                                 over-posting attacks.
+ *  4. Repopulate ViewBag        — if form validation fails, we must rebuild the
+ *                                 SelectList and put it back in ViewBag, otherwise
+ *                                 the dropdown disappears when the form re-renders.
+ *  5. OrderBy in queries        — sort the book list and category dropdowns with
+ *                                 LINQ OrderBy / ThenBy to improve usability.
+ *
+ * POST-SCAFFOLDING FIXES APPLIED (documented inline below):
+ *  Step 1 → Added "using Microsoft.AspNetCore.Mvc.Rendering" for SelectList
+ *  Step 2 → Added .Include(b => b.Category) to Index, Details, and Delete GET
+ *  Step 3 → Added ViewBag.CategoryId SelectList to Create GET and Edit GET
+ *  Step 4 → Removed navigation properties from [Bind] lists (Create & Edit POST)
+ *  Step 5 → Repopulated ViewBag.CategoryId when ModelState is invalid (Create & Edit POST)
+ * ============================================================================
+ */
 
-// FIX AFTER SCAFFOLDING (Step 1): Add 'using Microsoft.AspNetCore.Mvc.Rendering' so that SelectList
-// (used to build the Category dropdown for Create/Edit forms) compiles correctly.
-// The scaffolder does not add this automatically when it generates the raw CategoryId textbox.
+// FIX (Step 1): Microsoft.AspNetCore.Mvc.Rendering provides SelectList, which
+// is needed to build the Category dropdown for the Create and Edit forms.
+// The scaffolder does NOT add this using statement automatically.
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
@@ -10,6 +48,7 @@ using DotNetBookstore.Data;
 
 public class BooksController : Controller
 {
+    // Injected via constructor by the DI container (see Program.cs).
     private readonly ApplicationDbContext _context;
 
     public BooksController(ApplicationDbContext context)
@@ -17,19 +56,30 @@ public class BooksController : Controller
         _context = context;
     }
 
-    // GET: BOOKS
-    // FIX AFTER SCAFFOLDING (Step 2): Add .Include(b => b.Category) so that EF Core eagerly loads
-    // the related Category object for each Book in a single SQL JOIN query.
-    // Without this, book.Category is null in the view and the Category Name column shows nothing.
+    // ── GET: /Books ───────────────────────────────────────────────────────────
+    // Lists all books, ordered by Author then Title, with their Category loaded.
+    //
+    // FIX (Step 2): Without .Include(b => b.Category), EF Core returns books
+    // where book.Category is null. The view would then show an empty category
+    // column or throw a NullReferenceException.
+    //
+    // .Include(b => b.Category) tells EF Core to perform a JOIN:
+    //   SELECT b.*, c.* FROM Books b INNER JOIN Categories c ON b.CategoryId = c.CategoryId
+    // OrderBy / ThenBy add ORDER BY Author, Title to the query for alphabetical listing.
     public async Task<IActionResult> Index()
     {
-        return View(await _context.Books.Include(b => b.Category).OrderBy(b => b.Author).ThenBy(b => b.Title).ToListAsync());
+        return View(await _context.Books
+            .Include(b => b.Category)         // eagerly load the related Category
+            .OrderBy(b => b.Author)           // primary sort: alphabetical by author
+            .ThenBy(b => b.Title)             // secondary sort: alphabetical by title
+            .ToListAsync());
     }
 
-    // GET: BOOKS/Details/5
-    // FIX AFTER SCAFFOLDING (Step 2): Add .Include(b => b.Category) so EF Core loads the related
-    // Category for this Book. Without it, book.Category is null and the Category Name row in the
-    // Details view is blank.
+    // ── GET: /Books/Details/5 ─────────────────────────────────────────────────
+    // Shows the full details of a single book, including its category name.
+    //
+    // FIX (Step 2): Same .Include() fix — the Details view displays
+    // book.Category.Name, so we must load the related Category or it will be null.
     public async Task<IActionResult> Details(int? id)
     {
         if (id == null)
@@ -38,8 +88,9 @@ public class BooksController : Controller
         }
 
         var book = await _context.Books
-            .Include(b => b.Category)
+            .Include(b => b.Category)    // JOIN with Categories table
             .FirstOrDefaultAsync(m => m.BookId == id);
+
         if (book == null)
         {
             return NotFound();
@@ -48,30 +99,47 @@ public class BooksController : Controller
         return View(book);
     }
 
-    // GET: BOOKS/Create
-    // FIX AFTER SCAFFOLDING (Step 3): Pass a SelectList of all Categories to the view via ViewBag.
-    // The scaffolder only generates a plain textbox for CategoryId (a raw integer FK field).
-    // We replace that textbox with a <select> dropdown in the view, and this SelectList feeds it.
-    // Arguments: source table, value field (stored as FK), display field (shown to user).
+    // ── GET: /Books/Create ────────────────────────────────────────────────────
+    // Returns an empty form for adding a new book.
+    //
+    // FIX (Step 3): The scaffolded version had no SelectList — it generated a
+    // plain text box for CategoryId (an integer FK field), which is poor UX.
+    // We replace that with a <select> dropdown in the view, and this SelectList
+    // feeds it with all available categories.
+    //
+    // new SelectList(source, valueField, displayField):
+    //   source      → IQueryable from the Categories table
+    //   valueField  → "CategoryId" — the integer stored in the Books.CategoryId FK
+    //   displayField→ "Name"       — the human-readable string shown in the dropdown
     public IActionResult Create()
     {
-        ViewBag.CategoryId = new SelectList(_context.Categories.OrderBy(c => c.Name), "CategoryId", "Name");
+        // Pass the SelectList to the view via ViewBag.
+        // The key "CategoryId" matches the asp-items="ViewBag.CategoryId" attribute
+        // in the Create.cshtml view's <select> element.
+        ViewBag.CategoryId = new SelectList(
+            _context.Categories.OrderBy(c => c.Name), // source: all categories, A-Z
+            "CategoryId",                              // value stored when selected
+            "Name");                                   // text shown to the user
         return View();
     }
 
-    // POST: BOOKS/Create
-    // To protect from overposting attacks, enable the specific properties you want to bind to.
-    // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
-    // FIX AFTER SCAFFOLDING (Step 4): Removed navigation properties (Category, CartItems, OrderDetails)
-    // from the [Bind] list. The scaffolder added them automatically, but they must never be bound
-    // from raw POST data — EF Core manages those relationships through the FK (CategoryId) alone.
-    // Binding navigation objects from user input opens an overposting/mass-assignment security hole.
-    // FIX AFTER SCAFFOLDING (Step 5): Repopulate ViewBag.CategoryId if validation fails so the
-    // Category dropdown re-renders correctly when the form is returned to the user with errors.
-    // The 4th argument (book.CategoryId) pre-selects the value the user had already chosen.
+    // ── POST: /Books/Create ───────────────────────────────────────────────────
+    // Receives the form submission, validates it, and inserts the new book.
+    //
+    // FIX (Step 4): The scaffolded [Bind] list included navigation properties
+    // (Category, CartItems, OrderDetails). Navigation properties must NEVER be
+    // bound from raw POST data — doing so opens an over-posting vulnerability
+    // where a malicious user could submit spoofed related-object data.
+    // Solution: only bind the scalar, user-editable fields.
+    //
+    // FIX (Step 5): When validation fails, we return the form view — but the
+    // ViewBag.CategoryId we set in the GET action is gone (ViewBag is per-request).
+    // We must rebuild it here and include book.CategoryId as the 4th argument
+    // so the dropdown pre-selects the category the user had already chosen.
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Create([Bind("BookId,Author,Title,Image,Price,MatureContent,CategoryId")] Book book)
+    public async Task<IActionResult> Create(
+        [Bind("BookId,Author,Title,Image,Price,MatureContent,CategoryId")] Book book)
     {
         if (ModelState.IsValid)
         {
@@ -79,14 +147,23 @@ public class BooksController : Controller
             await _context.SaveChangesAsync();
             return RedirectToAction(nameof(Index));
         }
-        ViewBag.CategoryId = new SelectList(_context.Categories, "CategoryId", "Name", book.CategoryId);
+
+        // FIX (Step 5): Repopulate the category dropdown with the previously
+        // selected value pre-selected, so the user doesn't lose their choice.
+        ViewBag.CategoryId = new SelectList(
+            _context.Categories,
+            "CategoryId",
+            "Name",
+            book.CategoryId);  // 4th arg = currently selected value
         return View(book);
     }
 
-    // GET: BOOKS/Edit/5
-    // FIX AFTER SCAFFOLDING (Step 3): Pass a SelectList to ViewBag.CategoryId for the Category dropdown.
-    // The 4th argument (book.CategoryId) tells the SelectList which option to pre-select,
-    // so the Edit form opens with the book's current category already chosen in the dropdown.
+    // ── GET: /Books/Edit/5 ────────────────────────────────────────────────────
+    // Fetches the book and returns a pre-filled edit form.
+    //
+    // FIX (Step 3): Same SelectList setup as Create GET, with the addition of
+    // book.CategoryId as the 4th argument — this pre-selects the book's current
+    // category in the dropdown when the Edit form opens.
     public async Task<IActionResult> Edit(int? id)
     {
         if (id == null)
@@ -94,24 +171,33 @@ public class BooksController : Controller
             return NotFound();
         }
 
+        // FindAsync is efficient for PK lookups — checks the EF identity cache first.
         var book = await _context.Books.FindAsync(id);
         if (book == null)
         {
             return NotFound();
         }
-        ViewBag.CategoryId = new SelectList(_context.Categories.OrderBy(c => c.Name), "CategoryId", "Name", book.CategoryId);
+
+        // Build the SelectList with the book's current CategoryId pre-selected
+        // so the dropdown shows the correct category when the Edit form opens.
+        ViewBag.CategoryId = new SelectList(
+            _context.Categories.OrderBy(c => c.Name),
+            "CategoryId",
+            "Name",
+            book.CategoryId);  // pre-select the book's existing category
         return View(book);
     }
 
-    // POST: BOOKS/Edit/5
-    // To protect from overposting attacks, enable the specific properties you want to bind to.
-    // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
-    // FIX AFTER SCAFFOLDING (Step 4): Same [Bind] fix as Create POST — removed Category, CartItems,
-    // and OrderDetails. Only scalar, user-editable fields are allowed through model binding.
+    // ── POST: /Books/Edit/5 ───────────────────────────────────────────────────
+    // Saves the updated book fields to the database.
+    //
+    // FIX (Step 4): Same [Bind] fix as Create POST.
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Edit(int? id, [Bind("BookId,Author,Title,Image,Price,MatureContent,CategoryId")] Book book)
+    public async Task<IActionResult> Edit(int? id,
+        [Bind("BookId,Author,Title,Image,Price,MatureContent,CategoryId")] Book book)
     {
+        // Route ID must match the hidden BookId field in the form.
         if (id != book.BookId)
         {
             return NotFound();
@@ -121,32 +207,40 @@ public class BooksController : Controller
         {
             try
             {
+                // Update() attaches the detached entity and marks all fields as modified.
+                // SaveChangesAsync() generates: UPDATE Books SET ... WHERE BookId = @id
                 _context.Update(book);
                 await _context.SaveChangesAsync();
             }
             catch (DbUpdateConcurrencyException)
             {
+                // Check if the book still exists; if not, it was deleted by someone else.
                 if (!BookExists(book.BookId))
                 {
                     return NotFound();
                 }
                 else
                 {
-                    throw;
+                    throw; // Unknown concurrency problem — propagate to error handler
                 }
             }
             return RedirectToAction(nameof(Index));
         }
-        // FIX AFTER SCAFFOLDING (Step 5): Repopulate ViewBag.CategoryId on validation failure
-        // so the Category dropdown re-renders with the user's previously selected value intact.
-        ViewBag.CategoryId = new SelectList(_context.Categories, "CategoryId", "Name", book.CategoryId);
+
+        // FIX (Step 5): Repopulate the dropdown on validation failure.
+        ViewBag.CategoryId = new SelectList(
+            _context.Categories,
+            "CategoryId",
+            "Name",
+            book.CategoryId);
         return View(book);
     }
 
-    // GET: BOOKS/Delete/5
-    // FIX AFTER SCAFFOLDING (Step 2): Add .Include(b => b.Category) so EF Core loads the related
-    // Category for this Book. Without it, book.Category is null and the Category Name row on the
-    // Delete confirmation view is blank.
+    // ── GET: /Books/Delete/5 ─────────────────────────────────────────────────
+    // Shows a confirmation page with the book's details before deletion.
+    //
+    // FIX (Step 2): .Include(b => b.Category) so the confirmation page can
+    // show the category name alongside the book title, author, and price.
     public async Task<IActionResult> Delete(int? id)
     {
         if (id == null)
@@ -155,7 +249,7 @@ public class BooksController : Controller
         }
 
         var book = await _context.Books
-            .Include(b => b.Category)
+            .Include(b => b.Category)  // load category so the view can display its name
             .FirstOrDefaultAsync(m => m.BookId == id);
         if (book == null)
         {
@@ -165,7 +259,11 @@ public class BooksController : Controller
         return View(book);
     }
 
-    // POST: BOOKS/Delete/5
+    // ── POST: /Books/Delete/5 ────────────────────────────────────────────────
+    // Permanently removes the book after the user confirms on the delete page.
+    //
+    // ActionName("Delete") allows both the GET and POST Delete actions to share
+    // the same URL (/Books/Delete/5) while having different C# method names.
     [HttpPost, ActionName("Delete")]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> DeleteConfirmed(int? id)
@@ -180,6 +278,9 @@ public class BooksController : Controller
         return RedirectToAction(nameof(Index));
     }
 
+    // ── Private helper ────────────────────────────────────────────────────────
+    // Checks if a book with the given ID exists. Used in the Edit POST action
+    // to handle DbUpdateConcurrencyException gracefully.
     private bool BookExists(int? id)
     {
         return _context.Books.Any(e => e.BookId == id);

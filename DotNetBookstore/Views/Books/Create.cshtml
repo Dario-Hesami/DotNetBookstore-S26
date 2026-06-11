@@ -1,13 +1,55 @@
+@*
+ * ============================================================================
+ * DotNet Bookstore — In-Class ASP.NET Core MVC Project
+ * Course: COMP2084 | Georgian College | Summer 2026
+ * Instructor: Dario Hesami
+ * ============================================================================
+ *
+ * FILE:    Views/Books/Create.cshtml
+ * PURPOSE: The "Add New Book" form. Collects Author, Title, Image URL, Price,
+ *          Mature Content flag, and Category from the user and posts them to
+ *          BooksController.Create (POST) for validation and database insertion.
+ *
+ * KEY CONCEPTS FOR STUDENTS:
+ *  1. @model Book         — strongly typed to the Book entity. Tag Helpers
+ *                           (asp-for) use this type to find property names,
+ *                           validation rules, and display names automatically.
+ *  2. asp-action="Create" — Tag Helper on the <form> tag. Generates:
+ *                           action="/Books/Create" method="post" and adds the
+ *                           hidden __RequestVerificationToken for CSRF protection.
+ *  3. asp-for="Author"    — on a <label>: renders the [Display] name ("Author").
+ *                           On an <input>: sets name, id, and value from the model.
+ *  4. asp-validation-for  — renders a <span> that shows the server-side error
+ *                           message for that field. Also used by jQuery Validation
+ *                           (client-side) to display inline error messages.
+ *  5. asp-validation-summary="ModelOnly" — shows model-level errors (not
+ *                           field-level) at the top of the form in a red alert.
+ *  6. asp-items="ViewBag.CategoryId" — populates the <select> options from the
+ *                           SelectList that the controller put in ViewBag.
+ *  7. input-group          — Bootstrap component that visually groups an icon
+ *                           span + input field side-by-side with a shared border.
+ *  8. Live image preview   — the @section Scripts block runs JavaScript that
+ *                           listens for input events on the Image URL field and
+ *                           shows a live preview thumbnail as the user types.
+ *  9. @section Scripts     — injects view-specific JavaScript into the "Scripts"
+ *                           section of _Layout.cshtml (after jQuery is loaded).
+ * ============================================================================
+ *@
+
+@* Strongly-typed model: the form posts data that populates a Book object *@
 @model DotNetBookstore.Models.Book
 
 @{
     ViewData["Title"] = "Add New Book";
 }
 
+@* justify-content-center: centers the narrow form column horizontally *@
 <div class="row justify-content-center">
+    @* col-xl-5 col-lg-6 col-md-8: responsive width — narrower on large screens,
+       wider on small ones — ensures a readable form layout at all sizes *@
     <div class="col-xl-5 col-lg-6 col-md-8">
 
-        @* ── Back + title ──────────────────────────────────────────── *@
+        @* ── Back button + page title ─────────────────────────────────────── *@
         <div class="d-flex align-items-center mb-4">
             <a asp-action="Index" class="btn btn-outline-secondary btn-sm me-3" title="Back to list">
                 <i class="bi bi-arrow-left"></i>
@@ -22,18 +64,30 @@
 
         <div class="card shadow border-0">
             <div class="card-body p-4">
+
+                @* asp-action="Create" generates: action="/Books/Create" method="post"
+                   and also injects a hidden __RequestVerificationToken field for CSRF protection *@
                 <form asp-action="Create">
+
+                    @* Shows model-level validation errors (not individual field errors) *@
                     <div asp-validation-summary="ModelOnly" class="alert alert-danger py-2" role="alert"></div>
 
+                    @* ── Author field ──────────────────────────────────────── *@
                     <div class="mb-3">
+                        @* asp-for="Author" on label renders the [Display] name + links label to input *@
                         <label asp-for="Author" class="form-label fw-semibold small text-uppercase text-muted"></label>
+                        @* input-group: icon prefix + text input grouped visually *@
                         <div class="input-group">
                             <span class="input-group-text"><i class="bi bi-person"></i></span>
+                            @* asp-for="Author" on input: sets name="Author", id="Author",
+                               and wires up data-val-* attributes for client-side validation *@
                             <input asp-for="Author" class="form-control" placeholder="Author name" />
                         </div>
+                        @* Shows the validation error for Author if the field fails (e.g., empty or too long) *@
                         <span asp-validation-for="Author" class="text-danger small"></span>
                     </div>
 
+                    @* ── Title field ───────────────────────────────────────── *@
                     <div class="mb-3">
                         <label asp-for="Title" class="form-label fw-semibold small text-uppercase text-muted"></label>
                         <div class="input-group">
@@ -43,14 +97,18 @@
                         <span asp-validation-for="Title" class="text-danger small"></span>
                     </div>
 
-                    @* Image URL with live preview *@
+                    @* ── Image URL field with live preview ────────────────── *@
                     <div class="mb-3">
+                        @* Custom label text overrides the property name for clearer UX *@
                         <label asp-for="Image" class="form-label fw-semibold small text-uppercase text-muted">Cover Image URL</label>
                         <div class="input-group">
                             <span class="input-group-text"><i class="bi bi-image"></i></span>
+                            @* id="imageInput" is referenced by the JavaScript preview logic below *@
                             <input asp-for="Image" class="form-control" placeholder="https://…" id="imageInput" />
                         </div>
                         <span asp-validation-for="Image" class="text-danger small"></span>
+
+                        @* Live preview container — hidden by default (d-none), shown by JS *@
                         <div id="imagePreviewWrapper" class="mt-3 text-center d-none">
                             <div class="d-inline-block rounded-2 overflow-hidden shadow-sm"
                                  style="width:110px;height:160px;background:var(--brand-gradient-light)">
@@ -61,6 +119,7 @@
                         </div>
                     </div>
 
+                    @* ── Price field ───────────────────────────────────────── *@
                     <div class="mb-3">
                         <label asp-for="Price" class="form-label fw-semibold small text-uppercase text-muted"></label>
                         <div class="input-group">
@@ -70,7 +129,9 @@
                         <span asp-validation-for="Price" class="text-danger small"></span>
                     </div>
 
+                    @* ── Mature Content toggle switch ──────────────────────── *@
                     <div class="mb-3">
+                        @* form-switch renders the checkbox as a Bootstrap toggle slider *@
                         <div class="form-check form-switch p-3 rounded-2 bg-indigo-subtle">
                             <input asp-for="MatureContent" class="form-check-input" role="switch" id="matureSwitch" />
                             <label asp-for="MatureContent" class="form-check-label fw-semibold" for="matureSwitch">
@@ -83,22 +144,30 @@
                         <span asp-validation-for="MatureContent" class="text-danger small"></span>
                     </div>
 
+                    @* ── Category dropdown ─────────────────────────────────── *@
                     <div class="mb-4">
                         <label asp-for="CategoryId" class="form-label fw-semibold small text-uppercase text-muted">
                             <i class="bi bi-tag me-1"></i>Category
                         </label>
+                        @* asp-for="CategoryId" binds the selected value to Book.CategoryId.
+                           asp-items="ViewBag.CategoryId" uses the SelectList from the controller
+                           to populate the <option> elements. *@
                         <select asp-for="CategoryId" asp-items="ViewBag.CategoryId" class="form-select">
+                            @* Default empty option prompts user to make a selection *@
                             <option value="">— Select a Category —</option>
                         </select>
                         <span asp-validation-for="CategoryId" class="text-danger small"></span>
                     </div>
 
+                    @* Decorative gradient <hr> defined in site.css *@
                     <hr class="divider-gradient" />
 
+                    @* ── Action buttons ────────────────────────────────────── *@
                     <div class="d-flex gap-2">
                         <button type="submit" class="btn btn-primary px-4">
                             <i class="bi bi-check-circle me-1"></i>Create Book
                         </button>
+                        @* Cancel returns to the book list without saving *@
                         <a asp-action="Index" class="btn btn-outline-secondary px-4">
                             <i class="bi bi-x-circle me-1"></i>Cancel
                         </a>
@@ -110,24 +179,48 @@
     </div>
 </div>
 
+@* ── View-specific JavaScript (injected into _Layout's Scripts section) ───── *@
 @section Scripts {
+    @* Load the jQuery Validation libraries needed for client-side validation *@
     @{ await Html.RenderPartialAsync("_ValidationScriptsPartial"); }
+
     <script>
+        /*
+         * LIVE COVER IMAGE PREVIEW
+         * ─────────────────────────
+         * Listens for changes to the Image URL input field. Whenever the user
+         * types (or pastes) a URL, this code tries to load it into a hidden
+         * <img> element. If the image loads successfully, it shows the preview
+         * wrapper (removes d-none). If the image fails (broken URL), it re-hides
+         * the preview. This gives the user instant visual feedback.
+         *
+         * The IIFE (Immediately Invoked Function Expression) — (function(){ ... })()
+         * — creates a private scope so the variables (input, wrapper, preview)
+         * don't pollute the global window object.
+         */
         (function () {
-            var input = document.getElementById('imageInput');
-            var wrapper = document.getElementById('imagePreviewWrapper');
-            var preview = document.getElementById('imagePreview');
-            if (!input) return;
+            var input   = document.getElementById('imageInput');       // the URL text field
+            var wrapper = document.getElementById('imagePreviewWrapper'); // the preview container
+            var preview = document.getElementById('imagePreview');     // the <img> element
+
+            if (!input) return; // safety guard: exit if element is missing
 
             function updatePreview() {
                 var url = input.value.trim();
-                if (!url) { wrapper.classList.add('d-none'); return; }
-                preview.onload = function () { wrapper.classList.remove('d-none'); };
+                if (!url) {
+                    // Empty input: hide the preview
+                    wrapper.classList.add('d-none');
+                    return;
+                }
+                // Try loading the image — show on success, hide on error
+                preview.onload  = function () { wrapper.classList.remove('d-none'); };
                 preview.onerror = function () { wrapper.classList.add('d-none'); };
-                preview.src = url;
+                preview.src = url; // triggers browser to load the image
             }
 
+            // Listen for every keystroke or paste
             input.addEventListener('input', updatePreview);
+            // Run once immediately in case the form is pre-populated (edit mode)
             updatePreview();
         })();
     </script>

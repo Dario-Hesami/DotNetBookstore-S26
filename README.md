@@ -18,6 +18,7 @@ A full-featured ASP.NET Core MVC web application for managing an online bookstor
 ## Table of Contents
 
 - [Overview](#overview)
+- [Educational Comments](#educational-comments)
 - [Technology Stack](#technology-stack)
 - [Features](#features)
 - [UI/UX Design](#uiux-design)
@@ -46,6 +47,61 @@ The project demonstrates real-world patterns including:
 - Bootstrap 5 responsive layout with Bootstrap Icons
 - CSS custom properties for a consistent design token system
 - Reactive UI elements (live cover image preview, empty states, hover effects)
+
+---
+
+## Educational Comments
+
+> **Students and learners — please read this section before diving into the code.**
+
+Every source file in this repository has been annotated with two layers of purposeful, curriculum-aligned comments. They are not boilerplate — they are a structured learning resource written specifically for this course. Treat them as an integrated textbook that lives right next to the code it explains.
+
+### What was added and why
+
+| Layer | Where you find it | What it teaches |
+| --- | --- | --- |
+| **File header block** | Top of every `.cs`, `.cshtml`, `.css`, and `.js` file | States the file's purpose in plain English and lists the specific ASP.NET Core / C# concepts demonstrated inside |
+| **Inline comments** | Alongside individual lines, blocks, and decisions throughout each file | Explains *why* the code is written the way it is — the reasoning, the trade-offs, and the common mistakes it avoids |
+
+### Commented files and their key concepts
+
+| File | Key concepts covered in the comments |
+|---|---|
+| `Program.cs` | `WebApplicationBuilder`, Dependency Injection, EF Core registration, Identity setup, middleware pipeline order, convention-based routing |
+| `Data/ApplicationDbContext.cs` | `DbContext` vs `IdentityDbContext`, `DbSet<T>` as a table, constructor injection of `DbContextOptions`, migrations workflow, optional Fluent API |
+| `Models/Category.cs` | POCO model, primary key by convention, `[Required]` / `[DisplayName]` data annotations, navigation properties |
+| `Models/Book.cs` | Foreign key property, navigation property, `[ValidateNever]`, `null!` null-forgiving operator, `[Range]`, `[DisplayFormat]` |
+| `Models/CartItem.cs` | Database-persisted cart pattern, price snapshot, `CustomerId` as identity key, FK + navigation property pair |
+| `Models/Order.cs` | Order header / detail split pattern, `decimal` for currency, capturing shipping data at checkout time |
+| `Models/OrderDetail.cs` | Junction/bridge table concept, two FKs in one model, price capture, `[ValidateNever]` on navigation properties |
+| `Models/ErrorViewModel.cs` | ViewModel vs. entity, expression-bodied property (`=>`), nullable reference types |
+| `Controllers/HomeController.cs` | MVC controller anatomy, action methods, `IActionResult`, `return View()`, `[ResponseCache]` |
+| `Controllers/CategoriesController.cs` | Full CRUD HTTP mapping, `async`/`await`, `[HttpPost]`, `[ValidateAntiForgeryToken]`, `[Bind]`, `ModelState.IsValid`, `DbUpdateConcurrencyException`, PRG pattern |
+| `Controllers/BooksController.cs` | All of the above **plus**: eager loading with `.Include()`, `SelectList` + `ViewBag`, repopulating dropdowns on validation failure, the 5 numbered post-scaffolding fixes |
+| `Views/Shared/_Layout.cshtml` | Master layout template, `@RenderBody()`, `@RenderSectionAsync`, TempData flash messages, active nav link detection, `asp-append-version` cache busting |
+| `Views/Shared/_LoginPartial.cshtml` | Partial views, `@inject` in Razor, `SignInManager`, logout as a POST request (CSRF prevention) |
+| `Views/Shared/_ValidationScriptsPartial.cshtml` | Client-side vs. server-side validation, jQuery Validate, unobtrusive validation bridge |
+| `Views/Shared/Error.cshtml` | `@model` directive, ViewModel in a view, production vs. development error pages |
+| `Views/_ViewImports.cshtml` | Global `@using` namespaces, `@addTagHelper`, Tag Helper overview |
+| `Views/_ViewStart.cshtml` | `_ViewStart` implicit hook, setting the default layout, per-view overrides |
+| `Views/Home/Index.cshtml` | Razor code blocks, `@*...*@` server-side comments, `asp-controller`/`asp-action`, Bootstrap grid, responsive utilities |
+| `Views/Books/Index.cshtml` | Strongly-typed `@model`, `.ToList()` to avoid double-enumeration, `@foreach`, conditional rendering, `asp-route-id`, empty state UX |
+| `Views/Books/Create.cshtml` | `asp-action` on `<form>`, `asp-for` on labels and inputs, `asp-validation-for`, `asp-items` + `ViewBag` dropdown, IIFE image preview JavaScript, `@section Scripts` |
+| `Views/Books/Edit.cshtml` | Hidden `BookId` field, pre-populated inputs, category pre-selection, `updatePreview()` on page load |
+| `Views/Books/Details.cshtml` | Read-only view, `@Html.DisplayFor`, `<dl>` definition list, null-conditional `?.`, two-column Bootstrap layout |
+| `Views/Books/Delete.cshtml` | Two-step GET→POST delete, hidden PK field, danger styling conventions, Cancel as a safe link |
+| `Views/Categories/*.cshtml` | All of the above patterns applied to a simpler, one-field entity — ideal for seeing the concepts in their most direct form |
+| `wwwroot/css/site.css` | CSS custom properties (design tokens), Bootstrap override strategy, transitions, responsive `@media` queries, `object-fit: cover`, accessibility focus rings |
+| `wwwroot/js/site.js` | `wwwroot` as the web root, script load order, `DOMContentLoaded`, separation of concerns, commented auto-dismiss example |
+
+### How to get the most out of the comments
+
+1. **Read the header block first.** Before studying any method or template, read the `KEY CONCEPTS` list at the top of the file. It tells you exactly what to watch for.
+2. **Trace a full request.** Pick one action — for example, creating a book — and follow it from `BooksController.Create (GET)` → `Views/Books/Create.cshtml` → `BooksController.Create (POST)`. Read every inline comment along that path.
+3. **Compare Create and Edit.** The `Create` and `Edit` views are nearly identical. The inline comments highlight the exact lines that differ and explain *why* (hidden PK field, pre-selected dropdown, image pre-load). This comparison is a fast way to understand model binding.
+4. **Read the controller before the view.** The controller comment explains what data it prepares (`ViewBag`, `SelectList`, `.Include()`). Once you understand what arrives at the view, the view's markup makes much more sense.
+5. **Don't skip the CSS.** `site.css` comments explain every design decision — from CSS custom properties to the book cover `object-fit` trick. If you plan to customise the UI, read Section 1 (Design Tokens) first.
+6. **Ask "why", not just "what".** Most inline comments are written to answer *why* the code is written a particular way — a security reason (`[Bind]`, `[ValidateAntiForgeryToken]`), a convention (`null!`, `string.Empty`), or a fix to a scaffolding gap (`.Include()`, `SelectList`). Look for those explanations.
 
 ---
 

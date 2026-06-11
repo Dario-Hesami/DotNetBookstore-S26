@@ -1,3 +1,36 @@
+@*
+ * ============================================================================
+ * DotNet Bookstore — In-Class ASP.NET Core MVC Project
+ * Course: COMP2084 | Georgian College | Summer 2026
+ * Instructor: Dario Hesami
+ * ============================================================================
+ *
+ * FILE:    Views/Books/Edit.cshtml
+ * PURPOSE: The "Edit Book" form. Pre-populates all fields with the existing
+ *          book's data fetched by BooksController.Edit (GET), and posts
+ *          changes to BooksController.Edit (POST) for validation and saving.
+ *
+ * KEY CONCEPTS FOR STUDENTS:
+ *  1. Hidden input for BookId  — <input type="hidden" asp-for="BookId" />
+ *                                embeds the primary key in the form so the
+ *                                controller knows WHICH book to update.
+ *                                Without it, the POST action receives BookId = 0.
+ *  2. Pre-populated fields     — because the controller passes the existing Book
+ *                                object as the model, asp-for inputs render with
+ *                                value="..." already filled in from the model.
+ *  3. Category pre-selection   — the controller passes book.CategoryId as the
+ *                                4th argument to SelectList, so the dropdown
+ *                                opens with the book's current category selected.
+ *  4. updatePreview() on load  — the image preview script calls updatePreview()
+ *                                once at load time so the existing cover URL shows
+ *                                immediately rather than waiting for the user to type.
+ *  5. Same structure as Create — Edit and Create share almost identical markup.
+ *                                The key differences are: the page title, the hidden
+ *                                BookId field, the submit button label, and the
+ *                                form action (asp-action="Edit" vs. "Create").
+ * ============================================================================
+ *@
+
 @model DotNetBookstore.Models.Book
 
 @{
@@ -7,7 +40,7 @@
 <div class="row justify-content-center">
     <div class="col-xl-5 col-lg-6 col-md-8">
 
-        @* ── Back + title ──────────────────────────────────────────── *@
+        @* ── Back button + page title ─────────────────────────────────────── *@
         <div class="d-flex align-items-center mb-4">
             <a asp-action="Index" class="btn btn-outline-secondary btn-sm me-3" title="Back to list">
                 <i class="bi bi-arrow-left"></i>
@@ -16,25 +49,35 @@
                 <h2 class="mb-0 fw-bold section-title">
                     <i class="bi bi-pencil-square me-2 text-primary"></i>Edit Book
                 </h2>
+                @* Model?.Title uses null-conditional in case Model is null (rare but safe) *@
                 <p class="text-muted mb-0 mt-1 small">Update the details for <strong>@Model?.Title</strong>.</p>
             </div>
         </div>
 
         <div class="card shadow border-0">
             <div class="card-body p-4">
+
+                @* asp-action="Edit" posts to BooksController.Edit (POST) *@
                 <form asp-action="Edit">
                     <div asp-validation-summary="ModelOnly" class="alert alert-danger py-2" role="alert"></div>
+
+                    @* IMPORTANT: hidden field for BookId — the controller needs this
+                       to identify which record to update in the database.
+                       Without it, book.BookId = 0 in the POST action. *@
                     <input type="hidden" asp-for="BookId" />
 
+                    @* ── Author ───────────────────────────────────────────── *@
                     <div class="mb-3">
                         <label asp-for="Author" class="form-label fw-semibold small text-uppercase text-muted"></label>
                         <div class="input-group">
                             <span class="input-group-text"><i class="bi bi-person"></i></span>
+                            @* Value is pre-filled from the model by the asp-for Tag Helper *@
                             <input asp-for="Author" class="form-control" />
                         </div>
                         <span asp-validation-for="Author" class="text-danger small"></span>
                     </div>
 
+                    @* ── Title ────────────────────────────────────────────── *@
                     <div class="mb-3">
                         <label asp-for="Title" class="form-label fw-semibold small text-uppercase text-muted"></label>
                         <div class="input-group">
@@ -44,7 +87,7 @@
                         <span asp-validation-for="Title" class="text-danger small"></span>
                     </div>
 
-                    @* Image URL with live preview *@
+                    @* ── Image URL with live preview ─────────────────────── *@
                     <div class="mb-3">
                         <label asp-for="Image" class="form-label fw-semibold small text-uppercase text-muted">Cover Image URL</label>
                         <div class="input-group">
@@ -62,6 +105,7 @@
                         </div>
                     </div>
 
+                    @* ── Price ────────────────────────────────────────────── *@
                     <div class="mb-3">
                         <label asp-for="Price" class="form-label fw-semibold small text-uppercase text-muted"></label>
                         <div class="input-group">
@@ -71,6 +115,7 @@
                         <span asp-validation-for="Price" class="text-danger small"></span>
                     </div>
 
+                    @* ── Mature Content toggle ────────────────────────────── *@
                     <div class="mb-3">
                         <div class="form-check form-switch p-3 rounded-2 bg-indigo-subtle">
                             <input asp-for="MatureContent" class="form-check-input" role="switch" id="matureSwitch" />
@@ -84,6 +129,9 @@
                         <span asp-validation-for="MatureContent" class="text-danger small"></span>
                     </div>
 
+                    @* ── Category dropdown ─────────────────────────────────── *@
+                    @* The controller pre-selects the book's current CategoryId in the SelectList,
+                       so the correct category is highlighted when the Edit form opens. *@
                     <div class="mb-4">
                         <label asp-for="CategoryId" class="form-label fw-semibold small text-uppercase text-muted">
                             <i class="bi bi-tag me-1"></i>Category
@@ -96,6 +144,7 @@
 
                     <hr class="divider-gradient" />
 
+                    @* ── Action buttons ────────────────────────────────────── *@
                     <div class="d-flex gap-2">
                         <button type="submit" class="btn btn-primary px-4">
                             <i class="bi bi-check-circle me-1"></i>Save Changes
@@ -114,8 +163,14 @@
 @section Scripts {
     @{ await Html.RenderPartialAsync("_ValidationScriptsPartial"); }
     <script>
+        /*
+         * Same live image preview logic as Books/Create.cshtml.
+         * The key difference here: updatePreview() is called immediately on load
+         * so the existing cover URL shows a preview the moment the Edit page opens
+         * — the user doesn't need to re-type anything to see the current image.
+         */
         (function () {
-            var input = document.getElementById('imageInput');
+            var input   = document.getElementById('imageInput');
             var wrapper = document.getElementById('imagePreviewWrapper');
             var preview = document.getElementById('imagePreview');
             if (!input) return;
@@ -123,7 +178,7 @@
             function updatePreview() {
                 var url = input.value.trim();
                 if (!url) { wrapper.classList.add('d-none'); return; }
-                preview.onload = function () { wrapper.classList.remove('d-none'); };
+                preview.onload  = function () { wrapper.classList.remove('d-none'); };
                 preview.onerror = function () { wrapper.classList.add('d-none'); };
                 preview.src = url;
             }
