@@ -55,8 +55,6 @@ var connectionString = builder.Configuration.GetConnectionString("DefaultConnect
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(connectionString));
 
-builder.Services.AddDefaultIdentity<ApplicationUser>(options => options.SignIn.RequireConfirmedAccount = true).AddEntityFrameworkStores<ApplicationDbContext>();
-
 // In Development mode only: shows a helpful migration error page in the browser
 // if the database schema is out of date (instead of a cryptic SQL error).
 builder.Services.AddDatabaseDeveloperPageExceptionFilter();
