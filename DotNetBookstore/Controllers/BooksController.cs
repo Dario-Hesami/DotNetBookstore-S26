@@ -67,7 +67,14 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using DotNetBookstore.Models;
 using DotNetBookstore.Data;
+using Microsoft.AspNetCore.Authorization;
 
+// Only users in the "Customer" role may access this controller's actions.
+// The Details action is decorated with [AllowAnonymous], so anyone can view
+// book details without signing in.
+// The "Customer" role is created in Program.cs and assigned to new users
+// during registration.]
+[Authorize(Roles = "Administrator")]
 public class BooksController : Controller
 {
     // Injected via constructor by the DI container (see Program.cs).
@@ -109,6 +116,7 @@ public class BooksController : Controller
     //
     // FIX (Step 2): Same .Include() fix — the Details view displays
     // book.Category.Name, so we must load the related Category or it will be null.
+    [AllowAnonymous]  // anyone can view book details, even if not logged in
     public async Task<IActionResult> Details(int? id)
     {
         if (id == null)

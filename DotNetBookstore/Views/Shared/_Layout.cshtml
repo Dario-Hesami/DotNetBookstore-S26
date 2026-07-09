@@ -103,18 +103,29 @@
                                 <i class="bi bi-house-door me-1"></i>Home
                             </a>
                         </li>
-                        <li class="nav-item">
-                            <a class="nav-link @(ctrl == "Categories" ? "active" : "")"
-                               asp-area="" asp-controller="Categories" asp-action="Index">
-                                <i class="bi bi-tags me-1"></i>Categories
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link @(ctrl == "Books" ? "active" : "")"
-                               asp-area="" asp-controller="Books" asp-action="Index">
-                                <i class="bi bi-journal-bookmark me-1"></i>Books
-                            </a>
-                        </li>
+
+                        @* User.Identity.IsAuthenticated is a boolean indicating whether the current user is authenticated. *@
+                        @* Example: @if (User.Identity.IsAuthenticated) { /* show user-only UI */ } *@
+
+                        @* User.IsInRole("Administrator") returns true when the current user is in the
+                           'Administrator' role. The following conditional renders the Categories
+                           navigation item only for administrators. *@
+                        @if (User.IsInRole("Administrator"))
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link @(ctrl == "Categories" ? "active" : "")"
+                                   asp-area="" asp-controller="Categories" asp-action="Index">
+                                    <i class="bi bi-tags me-1"></i>Categories
+                                </a>
+                            </li>
+
+                            <li class="nav-item">
+                                <a class="nav-link @(ctrl == "Books" ? "active" : "")"
+                                   asp-area="" asp-controller="Books" asp-action="Index">
+                                    <i class="bi bi-journal-bookmark me-1"></i>Books
+                                </a>
+                            </li>
+                        }
                     </ul>
 
                     @* _LoginPartial is a partial view that shows Login/Register links

@@ -33,6 +33,7 @@
 
 using DotNetBookstore.Data;
 using Microsoft.AspNetCore.Identity;
+using DotNetBookstore.Data;
 using Microsoft.EntityFrameworkCore;
 
 // ── Step 1: Create the WebApplication builder ───────────────────────────────
@@ -54,6 +55,8 @@ var connectionString = builder.Configuration.GetConnectionString("DefaultConnect
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(connectionString));
 
+builder.Services.AddDefaultIdentity<ApplicationUser>(options => options.SignIn.RequireConfirmedAccount = true).AddEntityFrameworkStores<ApplicationDbContext>();
+
 // In Development mode only: shows a helpful migration error page in the browser
 // if the database schema is out of date (instead of a cryptic SQL error).
 builder.Services.AddDatabaseDeveloperPageExceptionFilter();
@@ -64,9 +67,17 @@ builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 // - RequireConfirmedAccount = true means users must verify their email before logging in.
 // - AddEntityFrameworkStores<>() tells Identity to store user data in our SQL database
 //   using our ApplicationDbContext (which inherits from IdentityDbContext).
-builder.Services.AddDefaultIdentity<IdentityUser>(options =>
-        options.SignIn.RequireConfirmedAccount = true)
-    .AddEntityFrameworkStores<ApplicationDbContext>();
+// Use AddIdentity when you need role support. AddDefaultIdentity does not expose all
+// the configuration hooks required for adding roles in some project templates, so
+// switch to AddIdentity<IdentityUser, IdentityRole>() and enable the default UI
+// and token providers so the Identity UI (Razor Pages) continues to work.
+builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
+{
+    options.SignIn.RequireConfirmedAccount = false;
+})
+    .AddEntityFrameworkStores<ApplicationDbContext>()
+    .AddDefaultTokenProviders()
+    .AddDefaultUI();
 
 // ── Step 4: Register MVC with Views ──────────────────────────────────────────
 // This single call registers all the services needed for MVC Controllers + Razor Views.

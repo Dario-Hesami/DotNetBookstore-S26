@@ -52,10 +52,15 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using DotNetBookstore.Models;
 using DotNetBookstore.Data;
+using Microsoft.AspNetCore.Authorization;
 
 // Note: this controller is intentionally in the global namespace (no explicit
 // namespace declaration) to match the scaffolded output. In production code
 // you would add: namespace DotNetBookstore.Controllers { ... }
+
+// Only users in the "Administrator" role can access any action in this controller.
+// If you want allow other roles or to access certain actions, you can override this with [AllowAnonymous] or [Authorize(Roles = "OtherRole")] on individual actions. For example two roles (Administrator and Manager) can be allowed to access the Index action by adding [Authorize(Roles = "Administrator,Manager")] 
+[Authorize(Roles = "Administrator")]
 public class CategoriesController : Controller
 {
     // Private field to hold the database context.
@@ -85,6 +90,7 @@ public class CategoriesController : Controller
     // Shows the full details of a single category identified by its ID.
     // The "int? id" parameter is nullable so we can detect when the URL has
     // no ID segment at all (e.g., /Categories/Details with nothing after it).
+    [AllowAnonymous] // Anyone can view category details, even if not logged in.
     public async Task<IActionResult> Details(int? id)
     {
         // Guard: if no ID was provided in the URL, return HTTP 404 Not Found.
