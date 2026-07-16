@@ -39,10 +39,6 @@ namespace DotNetBookstore.Data
     // Inheriting from IdentityDbContext automatically adds all the ASP.NET Core
     // Identity tables (AspNetUsers, AspNetRoles, AspNetUserClaims, etc.) to the
     // database alongside our own application tables.
-    // Use the generic IdentityDbContext<TUser> so the EF model includes our
-    // custom ApplicationUser type. Without the generic parameter EF will
-    // register the default IdentityUser which causes runtime errors when
-    // Identity tries to query for ApplicationUser.
     public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     {
         // The constructor receives DbContextOptions<ApplicationDbContext> which

@@ -104,6 +104,13 @@
                             </a>
                         </li>
 
+                        <li class="nav-item">
+                            <a class="nav-link @(ctrl == "Shop" ? "active" : "")"
+                               asp-area="" asp-controller="Shop" asp-action="Index">
+                                <i class="bi bi-cart me-1"></i>Shop
+                            </a>
+                        </li>
+
                         @* User.Identity.IsAuthenticated is a boolean indicating whether the current user is authenticated. *@
                         @* Example: @if (User.Identity.IsAuthenticated) { /* show user-only UI */ } *@
 

@@ -33,7 +33,6 @@
 
 using DotNetBookstore.Data;
 using Microsoft.AspNetCore.Identity;
-using DotNetBookstore.Data;
 using Microsoft.EntityFrameworkCore;
 
 // ── Step 1: Create the WebApplication builder ───────────────────────────────
@@ -81,6 +80,13 @@ builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
 // This single call registers all the services needed for MVC Controllers + Razor Views.
 // Without this, the app would not know how to handle controller routes or render views.
 builder.Services.AddControllersWithViews();
+
+// Register Google OAuth authentication (reads client id/secret from appsettings.json)
+builder.Services.AddAuthentication().AddGoogle(googleOptions =>
+{
+    googleOptions.ClientId = builder.Configuration["Authentication:Google:ClientId"];
+    googleOptions.ClientSecret = builder.Configuration["Authentication:Google:ClientSecret"];
+});
 
 // ── Step 5: Build the application ────────────────────────────────────────────
 // After this line, no more services can be registered. We switch from setup mode

@@ -56,20 +56,29 @@ public class ExternalLoginModel : PageModel
     ///     This API supports the ASP.NET Core Identity default UI infrastructure and is not intended to be used
     ///     directly from your code. This API may change or be removed in future releases.
     /// </summary>
-    public string? ProviderDisplayName { get; set; }
+    public string? ProviderDisplayName
+    {
+        get; set;
+    }
 
     /// <summary>
     ///     This API supports the ASP.NET Core Identity default UI infrastructure and is not intended to be used
     ///     directly from your code. This API may change or be removed in future releases.
     /// </summary>
-    public string? ReturnUrl { get; set; }
+    public string? ReturnUrl
+    {
+        get; set;
+    }
 
     /// <summary>
     ///     This API supports the ASP.NET Core Identity default UI infrastructure and is not intended to be used
     ///     directly from your code. This API may change or be removed in future releases.
     /// </summary>
     [TempData]
-    public string? ErrorMessage { get; set; }
+    public string? ErrorMessage
+    {
+        get; set;
+    }
 
     /// <summary>
     ///     This API supports the ASP.NET Core Identity default UI infrastructure and is not intended to be used
@@ -85,13 +94,16 @@ public class ExternalLoginModel : PageModel
         [EmailAddress]
         public string Email { get; set; } = default!;
     }
-        
+
     public IActionResult OnGet() => RedirectToPage("./Login");
 
     public IActionResult OnPost(string provider, string? returnUrl = null)
     {
         // Request a redirect to the external login provider.
-        var redirectUrl = Url.Page("./ExternalLogin", pageHandler: "Callback", values: new { returnUrl });
+        var redirectUrl = Url.Page("./ExternalLogin", pageHandler: "Callback", values: new
+        {
+            returnUrl
+        });
         var properties = _signInManager.ConfigureExternalAuthenticationProperties(provider, redirectUrl);
         return new ChallengeResult(provider, properties);
     }
@@ -102,13 +114,19 @@ public class ExternalLoginModel : PageModel
         if (remoteError != null)
         {
             ErrorMessage = $"Error from external provider: {remoteError}";
-            return RedirectToPage("./Login", new { ReturnUrl = returnUrl });
+            return RedirectToPage("./Login", new
+            {
+                ReturnUrl = returnUrl
+            });
         }
         var info = await _signInManager.GetExternalLoginInfoAsync();
         if (info == null)
         {
             ErrorMessage = "Error loading external login information.";
-            return RedirectToPage("./Login", new { ReturnUrl = returnUrl });
+            return RedirectToPage("./Login", new
+            {
+                ReturnUrl = returnUrl
+            });
         }
 
         // Sign in the user with this external login provider if the user already has a login.
@@ -146,7 +164,10 @@ public class ExternalLoginModel : PageModel
         if (info == null)
         {
             ErrorMessage = "Error loading external login information during confirmation.";
-            return RedirectToPage("./Login", new { ReturnUrl = returnUrl });
+            return RedirectToPage("./Login", new
+            {
+                ReturnUrl = returnUrl
+            });
         }
 
         if (ModelState.IsValid)
@@ -159,6 +180,9 @@ public class ExternalLoginModel : PageModel
             var result = await _userManager.CreateAsync(user);
             if (result.Succeeded)
             {
+                // Add the new user to the "Customer" role
+                await _userManager.AddToRoleAsync(user, "Customer");
+
                 result = await _userManager.AddLoginAsync(user, info);
                 if (result.Succeeded)
                 {
@@ -170,7 +194,12 @@ public class ExternalLoginModel : PageModel
                     var callbackUrl = Url.Page(
                         "/Account/ConfirmEmail",
                         pageHandler: null,
-                        values: new { area = "Identity", userId = userId, code = code },
+                        values: new
+                        {
+                            area = "Identity",
+                            userId = userId,
+                            code = code
+                        },
                         protocol: Request.Scheme)!;
 
                     await _emailSender.SendEmailAsync(Input.Email, "Confirm your email",
@@ -179,7 +208,10 @@ public class ExternalLoginModel : PageModel
                     // If account confirmation is required, we need to show the link if we don't have a real email sender
                     if (_userManager.Options.SignIn.RequireConfirmedAccount)
                     {
-                        return RedirectToPage("./RegisterConfirmation", new { Email = Input.Email });
+                        return RedirectToPage("./RegisterConfirmation", new
+                        {
+                            Email = Input.Email
+                        });
                     }
 
                     await _signInManager.SignInAsync(user, isPersistent: false, info.LoginProvider);
