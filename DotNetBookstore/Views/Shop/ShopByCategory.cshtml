@@ -117,8 +117,23 @@ else
                                     aria-label="Preview @book.Title" title="Preview">
                                 <i class="bi bi-eye" aria-hidden="true"></i>
                             </button>
-                            <form asp-controller="Cart" asp-action="Add" method="post" class="d-inline-flex flex-fill" role="form">
+                            <form asp-controller="Shop" asp-action="AddToCart" method="post" class="d-inline-flex flex-fill align-items-center" role="form">
+                                @Html.AntiForgeryToken()
                                 <input type="hidden" name="bookId" value="@book.BookId" />
+                                <label for="qty-@book.BookId" class="visually-hidden">Quantity for @book.Title</label>
+                                <input
+                                    type="number"
+                                    id="qty-@book.BookId"
+                                    name="quantity"
+                                    value="1"
+                                    min="1"
+                                    max="100"
+                                    step="1"
+                                    class="form-control form-control-sm me-2"
+                                    style="width:5.2rem"
+                                    inputmode="numeric"
+                                    pattern="\d+"
+                                    aria-label="Quantity" />
                                 <button type="submit" class="btn btn-primary flex-fill" aria-label="Add @book.Title to cart">
                                     <i class="bi bi-cart-plus me-2" aria-hidden="true"></i>Add to Cart
                                 </button>
@@ -147,7 +162,20 @@ else
                             <p id="quickViewAuthor" class="text-muted mb-1"></p>
                             <p id="quickViewDescription"></p>
                             <p id="quickViewPrice" class="fw-bold fs-4 text-success"></p>
-                            <div id="quickViewActions" class="mt-3"></div>
+                    <div id="quickViewActions" class="mt-3"></div>
+                    <!-- Template for quick view add-to-cart form (keeps antiforgery token server-rendered) -->
+                    <div id="quickViewFormTemplate" class="d-none">
+                        <div class="quick-actions">
+                            <a asp-controller="Books" asp-action="Details" asp-route-id="" class="btn btn-outline-primary me-2 template-view-link">View details</a>
+                            <form asp-controller="Shop" asp-action="AddToCart" method="post" class="d-inline-block" role="form">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="bookId" value="" />
+                                <label class="visually-hidden" for="quickQty">Quantity</label>
+                                <input type="number" id="quickQty" name="quantity" value="1" min="1" max="100" step="1" class="form-control form-control-sm d-inline-block me-2" style="width:5.2rem" inputmode="numeric" pattern="\d+" aria-label="Quantity" />
+                                <button class="btn btn-primary">Add to Cart</button>
+                            </form>
+                        </div>
+                    </div>
                         </div>
                     </div>
                 </div>
@@ -292,13 +320,39 @@ else
                     document.getElementById('quickViewPrice').textContent = new Intl.NumberFormat(undefined, {style:'currency',currency:'USD'}).format(parseFloat(price || 0));
 
                     const actions = document.getElementById('quickViewActions');
-                    actions.innerHTML = `
-                        <a class="btn btn-outline-primary me-2" href="/Books/Details/${id}">View details</a>
-                        <form method="post" action="/Cart/Add" class="d-inline-block">
-                            <input type="hidden" name="bookId" value="${id}" />
-                            <button class="btn btn-primary">Add to Cart</button>
-                        </form>
-                    `;
+                    // Build actions using a server-rendered template to preserve antiforgery token
+                    actions.innerHTML = '';
+                    const tpl = document.getElementById('quickViewFormTemplate');
+                    if(tpl){
+                        // Clone the entire quick-actions block (includes a server-rendered tag-helper link and the protected form)
+                        const cloneBlock = tpl.querySelector('.quick-actions').cloneNode(true);
+                        // adjust the details link href to include the id (tag helper rendered may be without id)
+                        const link = cloneBlock.querySelector('.template-view-link');
+                        if(link){
+                            // If tag helper rendered an href, override it to include the id; otherwise set it
+                            link.href = '/Books/Details/' + id;
+                        }
+                        // set the bookId hidden input inside the cloned form
+                        const hidden = cloneBlock.querySelector('input[name="bookId"]');
+                        if(hidden) hidden.value = id;
+                        // ensure quantity id on clone is unique
+                        const qty = cloneBlock.querySelector('input[name="quantity"]');
+                        if(qty){
+                            const newId = 'quickQty-' + id;
+                            const lbl = cloneBlock.querySelector('label[for="quickQty"]');
+                            if(lbl) lbl.setAttribute('for', newId);
+                            qty.id = newId;
+                        }
+                        actions.appendChild(cloneBlock);
+                    } else {
+                        // Fallback: simple form without antiforgery (not recommended)
+                        const f = document.createElement('form');
+                        f.method = 'post';
+                        f.action = '/Shop/AddToCart';
+                        f.className = 'd-inline-block';
+                        f.innerHTML = `<input type="hidden" name="bookId" value="${id}" /><button class="btn btn-primary">Add to Cart</button>`;
+                        actions.appendChild(f);
+                    }
                 });
             }
 

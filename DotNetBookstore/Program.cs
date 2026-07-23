@@ -81,6 +81,17 @@ builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
 // Without this, the app would not know how to handle controller routes or render views.
 builder.Services.AddControllersWithViews();
 
+// Enable server-side session support (used for anonymous cart id and item count)
+// Configure sensible defaults for the demo: 20 minute idle timeout, HttpOnly cookie,
+// and mark the cookie as essential so it works even when the user hasn't consented
+// to non-essential cookies (useful in demo environments).
+builder.Services.AddSession(options =>
+{
+    options.IdleTimeout = TimeSpan.FromMinutes(20);
+    options.Cookie.HttpOnly = true;
+    options.Cookie.IsEssential = true;
+});
+
 // Register Google OAuth authentication (reads client id/secret from appsettings.json)
 builder.Services.AddAuthentication().AddGoogle(googleOptions =>
 {
@@ -127,6 +138,11 @@ app.UseStaticFiles();
 // Set up URL routing so the framework knows which controller/action to invoke.
 // Must be called BEFORE UseAuthorization.
 app.UseRouting();
+
+// Enable authentication (required when Identity is registered) and session middleware.
+// Order: UseAuthentication -> UseSession -> UseAuthorization
+app.UseAuthentication();
+app.UseSession();
 
 // Check [Authorize] attributes on controllers/actions.
 // Must come AFTER UseRouting() and BEFORE MapControllerRoute().

@@ -36,10 +36,18 @@
  * ============================================================================
  *@
 
+@using Microsoft.AspNetCore.Http
 @{
     @* Read the current controller name from route data so we can highlight
        the active nav link below. The ?? "" fallback prevents null issues. *@
     var ctrl = ViewContext.RouteData.Values["controller"]?.ToString() ?? "";
+    // Read cart item count from session (defaults to 0)
+    var cartCount = 0;
+    var ctx = ViewContext?.HttpContext;
+    if (ctx?.Session != null)
+    {
+        cartCount = ctx.Session.GetInt32("ItemCount") ?? 0;
+    }
 }
 <!DOCTYPE html>
 <html lang="en">
@@ -108,6 +116,10 @@
                             <a class="nav-link @(ctrl == "Shop" ? "active" : "")"
                                asp-area="" asp-controller="Shop" asp-action="Index">
                                 <i class="bi bi-cart me-1"></i>Shop
+                                <span class="position-relative">
+                                    <span class="visually-hidden">Cart</span>
+                                    <span class="badge bg-secondary ms-2">@cartCount</span>
+                                </span>
                             </a>
                         </li>
 
@@ -172,6 +184,24 @@
         </div>
     }
 
+    @* TempData-based toast for cart actions (Add/Update/Remove) *@
+    @if (TempData["CartMessage"] is string cartMsg)
+    {
+        var cartMsgType = (TempData["CartMessageType"] as string) ?? "success";
+        var toastClass = "text-bg-success";
+        if (cartMsgType == "warning") { toastClass = "text-bg-warning"; }
+        else if (cartMsgType == "info") { toastClass = "text-bg-info"; }
+
+        <div class="position-fixed top-0 end-0 p-3" style="z-index:1100">
+            <div id="cartToast" class="toast align-items-center @toastClass border-0" role="alert" aria-live="assertive" aria-atomic="true">
+                <div class="d-flex">
+                    <div class="toast-body">@cartMsg</div>
+                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+                </div>
+            </div>
+        </div>
+    }
+
     @* ── Main content area ───────────────────────────────────────────────────── *@
     @* flex-grow-1 makes this container expand to fill available vertical space,
        which pushes the footer down to the bottom of the viewport. *@
@@ -228,6 +258,19 @@
 
     @* Our custom JavaScript (currently a stub — add your own logic in wwwroot/js/site.js) *@
     <script src="~/js/site.js" asp-append-version="true"></script>
+
+    <script>
+        // Show cart toast when present in layout
+        (function(){
+            document.addEventListener('DOMContentLoaded', function(){
+                var toastEl = document.getElementById('cartToast');
+                if(toastEl && window.bootstrap && bootstrap.Toast){
+                    var t = new bootstrap.Toast(toastEl, { delay: 4000 });
+                    t.show();
+                }
+            });
+        })();
+    </script>
 
     @* @RenderSectionAsync("Scripts", required: false) — optional section that
        individual views can fill in with their own <script> blocks.
