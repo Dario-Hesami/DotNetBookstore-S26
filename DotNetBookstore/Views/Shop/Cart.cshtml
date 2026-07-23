@@ -1,4 +1,22 @@
-﻿@model IEnumerable<DotNetBookstore.Models.CartItem>
+﻿@*
+    ============================================================================
+    FILE:    Views/Shop/Cart.cshtml
+    PURPOSE: Render the user's shopping cart. This view demonstrates common
+             e-commerce UI patterns for students: listing cart items, updating
+             quantities, removing items, and showing an order summary. It uses
+             small POST forms for updates/removals (anti-forgery protected) so
+             the classroom example follows MVC security best practices.
+
+    TEACHING NOTES:
+    - Each quantity update and remove operation is a POST (not GET). This is
+      intentional: state changes should use POST + anti-forgery tokens.
+    - TempData is used by the controller to pass one-time toast messages after
+      redirects so students can learn the Post-Redirect-Get pattern.
+    - The page uses progressive enhancement: JavaScript improves UX (auto-
+      submit, debounced +/- buttons) but forms still work without JS.
+    ============================================================================
+*@
+@model IEnumerable<DotNetBookstore.Models.CartItem>
 @{
     ViewData["Title"] = "Cart";
 }
@@ -93,6 +111,11 @@
                                             </td>
                                             <td class="text-end text-success fw-semibold">@string.Format("{0:C}", item.Price)</td>
                                             <td class="text-center">
+                                                @* Quantity update form: this small form posts to the
+                                                   ShopController.UpdateQuantity action and is protected
+                                                   by an antiforgery token. Using POST for quantity
+                                                   changes follows best practices: avoid state changes
+                                                   via GET requests. *@
                                                 <form asp-controller="Shop" asp-action="UpdateQuantity" method="post" class="qty-form d-inline-flex align-items-center">
                                                     @Html.AntiForgeryToken()
                                                     <input type="hidden" name="cartItemId" value="@item.CartItemId" />
@@ -200,11 +223,17 @@
 
                     // on blur, submit the parent form
                     input.addEventListener('blur', function(){
+                        // Submitting on blur improves UX for keyboard users. Because
+                        // the form uses a normal POST with an antiforgery token, this
+                        // works even when JavaScript is enabled or disabled.
                         try { form.submit(); } catch(e) { /* ignore */ }
                     });
 
                     // on Enter, submit and prevent default form navigation
                     input.addEventListener('keydown', function(e){
+                        // Intercept Enter so the page doesn't inadvertently
+                        // navigate; instead we submit the form via POST which
+                        // triggers the UpdateQuantity action (PRG follows).
                         if(e.key === 'Enter'){
                             e.preventDefault();
                             try { form.submit(); } catch(err) { /* ignore */ }

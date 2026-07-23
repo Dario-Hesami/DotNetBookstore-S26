@@ -1,6 +1,23 @@
-﻿@model IEnumerable<DotNetBookstore.Models.Book>
+﻿@*
+   =============================================================================
+   FILE:    Views/Shop/ShopByCategory.cshtml
+   PURPOSE: Renders a grid of books that belong to a single category. This view
+            provides client-side filtering, sorting, pagination and quick-view
+            preview. It also exposes an "Add to Cart" form for each book so
+            students can see how tag-helpers, forms and anti-forgery tokens
+            integrate with controller actions.
+
+   TEACHING NOTES:
+   - The view uses data-* attributes on each card to allow lightweight client
+     side operations (sorting/filtering) without extra server round-trips.
+   - Add-to-cart forms include an anti-forgery token and a compact quantity
+     input so instructors can demonstrate secure form posts in MVC.
+   =============================================================================
+*@
+@model IEnumerable<DotNetBookstore.Models.Book>
 @{
     var categoryName = ViewData["CategoryName"] as string ?? "Category";
+    // Set the page title if the controller/action didn't supply one
     ViewData["Title"] = ViewData["Title"] ?? ($"Shop - {categoryName}");
 }
 
@@ -117,8 +134,17 @@ else
                                     aria-label="Preview @book.Title" title="Preview">
                                 <i class="bi bi-eye" aria-hidden="true"></i>
                             </button>
+                            @* Add-to-cart form (progressive enhancement) *@
+                            @*
+                               This small form demonstrates a secure, accessible pattern:
+                               - It uses server-rendered anti-forgery token so the POST is safe.
+                               - The quantity input allows the user to change how many items to add.
+                               - The form is a standard POST so it works without JavaScript (progressive enhancement).
+                               - Client-side scripts may enhance the UX (e.g., nicer steppers) but must not be required.
+                            *@
                             <form asp-controller="Shop" asp-action="AddToCart" method="post" class="d-inline-flex flex-fill align-items-center" role="form">
                                 @Html.AntiForgeryToken()
+                                @* Hidden book id field bound to controller action parameter *@
                                 <input type="hidden" name="bookId" value="@book.BookId" />
                                 <label for="qty-@book.BookId" class="visually-hidden">Quantity for @book.Title</label>
                                 <input
@@ -169,6 +195,10 @@ else
                             <a asp-controller="Books" asp-action="Details" asp-route-id="" class="btn btn-outline-primary me-2 template-view-link">View details</a>
                             <form asp-controller="Shop" asp-action="AddToCart" method="post" class="d-inline-block" role="form">
                                 @Html.AntiForgeryToken()
+                                @* The template includes an anti-forgery token so when we clone
+                                   this fragment into the modal the POST will be protected.
+                                   Cloning server-rendered tokens is simpler and safer for
+                                   demo code than generating them client-side. *@
                                 <input type="hidden" name="bookId" value="" />
                                 <label class="visually-hidden" for="quickQty">Quantity</label>
                                 <input type="number" id="quickQty" name="quantity" value="1" min="1" max="100" step="1" class="form-control form-control-sm d-inline-block me-2" style="width:5.2rem" inputmode="numeric" pattern="\d+" aria-label="Quantity" />
@@ -189,6 +219,15 @@ else
 
     <script>
         (function(){
+            // This IIFE contains lightweight client-side functionality that
+            // enhances the user experience but is not required for correctness.
+            // Key teaching points:
+            // - All operations work on server-rendered HTML (progressive enhancement).
+            // - Add-to-cart uses a normal POST with an antiforgery token so JS is
+            //   never required to perform secure actions.
+            // - The Quick View clones a server-rendered template that already
+            //   contains an antiforgery token; cloning preserves the token for
+            //   modal form submissions without generating tokens client-side.
             // Utilities
             const grid = document.getElementById('shopGrid');
             let items = Array.from(grid.querySelectorAll('.col'));
@@ -321,6 +360,9 @@ else
 
                     const actions = document.getElementById('quickViewActions');
                     // Build actions using a server-rendered template to preserve antiforgery token
+                    // We clear and then clone a small server-side fragment that contains
+                    // a tag-helper link and a protected form. Cloning keeps the
+                    // anti-forgery input intact so the modal form posts remain secure.
                     actions.innerHTML = '';
                     const tpl = document.getElementById('quickViewFormTemplate');
                     if(tpl){
@@ -335,12 +377,17 @@ else
                         // set the bookId hidden input inside the cloned form
                         const hidden = cloneBlock.querySelector('input[name="bookId"]');
                         if(hidden) hidden.value = id;
-                        // ensure quantity id on clone is unique
+                        // ensure quantity id on clone is unique so label/controls remain accessible
                         const qty = cloneBlock.querySelector('input[name="quantity"]');
                         if(qty){
                             const newId = 'quickQty-' + id;
                             const lbl = cloneBlock.querySelector('label[for="quickQty"]');
                             if(lbl) lbl.setAttribute('for', newId);
+                            qty.id = newId;
+                        }
+                        // Append the cloned node into the modal actions area
+                        actions.appendChild(cloneBlock);
+                    }
                             qty.id = newId;
                         }
                         actions.appendChild(cloneBlock);
